@@ -1,0 +1,32 @@
+# Environment
+.env
+
+# Binary
+eventapp
+
+# Uploads (runtime)
+uploads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# macOS
+.DS_Store
+
+# Go
+vendor/
+*.test
+*.prof
+
+# iOS
+ios/EventApp.xcodeproj/xcuserdata/
+ios/build/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# Docs generated
+docs/docs.go
+docs/swagger.json

@@ -1,0 +1,57 @@
+name: EventApp
+options:
+  bundleIdPrefix: com.eventapp
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  defaultConfig: Debug
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_PREVIEWS: YES
+
+targets:
+  EventApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+
+    info:
+      path: EventApp/Info.plist
+      properties:
+        UILaunchScreen:
+          UIColorName: ""
+        NSFaceIDUsageDescription: "Used to secure your session"
+        NSCameraUsageDescription: "Camera is used to scan QR codes for event check-in"
+        NSCalendarsUsageDescription: "Add events to your calendar for reminders"
+        NSCalendarsFullAccessUsageDescription: "Add events to your calendar for reminders"
+        UIBackgroundModes:
+          - remote-notification
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eventapp.app
+        INFOPLIST_FILE: EventApp/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+    sources:
+      - path: EventApp
+        excludes:
+          - "**/*.md"
+
+    dependencies:
+      - sdk: AVFoundation.framework
+      - sdk: EventKit.framework
+      - sdk: EventKitUI.framework
+      - sdk: LocalAuthentication.framework
+      - sdk: UserNotifications.framework
+      - sdk: Security.framework
