@@ -20,9 +20,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 
 	"eventapp/config"
-	_ "eventapp/docs"
+	"eventapp/docs"
 	"eventapp/internal/app"
 	deliveryhttp "eventapp/internal/delivery/http"
 	"eventapp/internal/delivery/http/handler"
@@ -67,6 +68,7 @@ func main() {
 	if publicBase == "" {
 		publicBase = fmt.Sprintf("http://localhost:%s", cfg.App.Port)
 	}
+	configureSwagger(publicBase)
 	fileStore, err := storage.NewLocalStore("./uploads", publicBase+"/uploads")
 	if err != nil {
 		log.Fatalf("file storage: %v", err)
@@ -132,5 +134,23 @@ func main() {
 	log.Printf("[server] starting on %s (env=%s)", addr, cfg.App.Env)
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("server: %v", err)
+	}
+}
+
+func configureSwagger(publicBase string) {
+	u, err := url.Parse(publicBase)
+	if err != nil {
+		log.Printf("[swagger] invalid PUBLIC_BASE_URL %q: %v", publicBase, err)
+		return
+	}
+	if u.Host != "" {
+		docs.SwaggerInfo.Host = u.Host
+	}
+	if u.Path != "" && u.Path != "/" {
+		docs.SwaggerInfo.BasePath = u.Path
+	}
+	switch u.Scheme {
+	case "http", "https":
+		docs.SwaggerInfo.Schemes = []string{u.Scheme}
 	}
 }

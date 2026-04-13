@@ -19,19 +19,25 @@ enum ServerEnvironment: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    private var configuredBaseURL: URL? {
+        guard let raw = Bundle.main.infoDictionary?["EA_API_BASE_URL"] as? String,
+              let url = URL(string: raw),
+              !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return url
+    }
+
     var baseURL: URL {
         switch self {
         case .local:
-            // Simulator / same machine.
-            return URL(string: "http://localhost:8080")!
+            // Prefer an injected URL when provided, otherwise fall back to same-machine dev.
+            return configuredBaseURL ?? URL(string: "http://localhost:8080")!
         case .lan:
-            // Change this to your LAN IP or ngrok/tunnel URL for device testing.
-            // Example: "http://192.168.1.42:8080" or "https://abc123.ngrok.io"
-            let override = Bundle.main.infoDictionary?["EA_API_BASE_URL"] as? String
-            return URL(string: override ?? "http://localhost:8080")!
+            // Use the configured LAN/tunnel URL when present.
+            return configuredBaseURL ?? URL(string: "http://localhost:8080")!
         case .production:
-            let override = Bundle.main.infoDictionary?["EA_API_BASE_URL"] as? String
-            return URL(string: override ?? "https://api.eventapp.kz")!
+            return configuredBaseURL ?? URL(string: "https://api.eventapp.kz")!
         }
     }
 }
@@ -47,13 +53,24 @@ final class AppEnvironment: ObservableObject {
 
     static let shared = AppEnvironment()
 
+    private static var defaultDebugServerEnvironment: ServerEnvironment {
+        guard let raw = Bundle.main.infoDictionary?["EA_API_BASE_URL"] as? String else {
+            return .local
+        }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if trimmed.isEmpty || trimmed.contains("localhost") || trimmed.contains("127.0.0.1") {
+            return .local
+        }
+        return .lan
+    }
+
     // Phase A change (diploma stabilization): DEBUG defaults to `.live` so the
     // canonical demo path — Docker infra + seeded Postgres + local Go API —
     // is what the simulator actually shows. Mock remains opt-in via the
     // Profile → Developer toggle for offline UI work.
     #if DEBUG
     @Published var dataMode: DataMode = .live
-    @Published var serverEnvironment: ServerEnvironment = .local
+    @Published var serverEnvironment: ServerEnvironment = AppEnvironment.defaultDebugServerEnvironment
     #else
     @Published var dataMode: DataMode = .live
     @Published var serverEnvironment: ServerEnvironment = .production
