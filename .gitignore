@@ -30,4 +30,4 @@ ios/build/
 
 # ── Swagger generated ────────────────────────────────────────────────────────
 docs/docs.go
-docs/swagger.json
+# docs/swagger.json
