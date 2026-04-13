@@ -1,19 +1,738 @@
+basePath: /
 definitions:
-  models.Event:
+  app.AttendanceReport:
     properties:
-      date:
+      capacity:
+        type: integer
+      event_date:
         type: string
-      id:
+      event_id:
+        type: integer
+      event_title:
+        type: string
+      rows:
+        items:
+          $ref: '#/definitions/app.AttendanceRow'
+        type: array
+      status_count:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      total_rows:
+        type: integer
+    type: object
+  app.AttendanceRow:
+    properties:
+      applied_at:
+        type: string
+      checked_in_at:
+        type: string
+      city:
+        type: string
+      grade:
+        type: integer
+      school:
+        type: string
+      status:
+        type: string
+      user_email:
+        type: string
+      user_name:
+        type: string
+    type: object
+  app.DashboardStats:
+    properties:
+      pending_organizers:
+        type: integer
+      recent_actions:
+        items:
+          $ref: '#/definitions/domain.AuditLog'
+        type: array
+      total_events:
+        type: integer
+      total_registrations:
+        type: integer
+      total_users:
+        type: integer
+      users_by_role:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+    type: object
+  app.EventSummaryRow:
+    properties:
+      approved:
+        type: integer
+      cancelled:
+        type: integer
+      capacity:
+        type: integer
+      checked_in:
+        type: integer
+      checkin_rate_pct:
+        type: number
+      completed:
+        type: integer
+      date_start:
+        type: string
+      event_id:
+        type: integer
+      fill_rate_pct:
+        type: number
+      registered:
+        type: integer
+      rejected:
         type: integer
       title:
         type: string
+      waitlisted:
+        type: integer
     type: object
+  app.OrganizerSummary:
+    properties:
+      avg_fill_rate_pct:
+        type: number
+      events:
+        items:
+          $ref: '#/definitions/app.EventSummaryRow'
+        type: array
+      organizer_id:
+        type: integer
+      total_checked_in:
+        type: integer
+      total_events:
+        type: integer
+      total_registered:
+        type: integer
+    type: object
+  domain.AuditAction:
+    enum:
+    - login
+    - register
+    - organizer_approved
+    - organizer_rejected
+    - user_blocked
+    - user_unblocked
+    - user_role_changed
+    - event_created
+    - event_updated
+    - event_deleted
+    - registration_apply
+    - registration_status_change
+    - checkin
+    type: string
+    x-enum-varnames:
+    - AuditLogin
+    - AuditRegister
+    - AuditOrganizerApproved
+    - AuditOrganizerRejected
+    - AuditUserBlocked
+    - AuditUserUnblocked
+    - AuditUserRoleChanged
+    - AuditEventCreated
+    - AuditEventUpdated
+    - AuditEventDeleted
+    - AuditRegistrationApply
+    - AuditRegistrationStatus
+    - AuditCheckin
+  domain.AuditLog:
+    properties:
+      action:
+        $ref: '#/definitions/domain.AuditAction'
+      actor_id:
+        type: integer
+      created_at:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        description: '"user", "event", "registration"'
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      summary:
+        type: string
+    type: object
+  domain.Event:
+    properties:
+      additional_info:
+        type: string
+      address:
+        type: string
+      capacity:
+        type: integer
+      category:
+        type: string
+      checkin_token:
+        type: string
+      city:
+        type: string
+      created_at:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+      format:
+        $ref: '#/definitions/domain.EventFormat'
+      id:
+        type: integer
+      is_free:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      organizer:
+        $ref: '#/definitions/domain.User'
+      organizer_contact:
+        type: string
+      organizer_id:
+        type: integer
+      poster_url:
+        type: string
+      price:
+        type: number
+      reg_deadline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.EventFormat:
+    enum:
+    - online
+    - offline
+    - hybrid
+    type: string
+    x-enum-varnames:
+    - FormatOnline
+    - FormatOffline
+    - FormatHybrid
+  domain.Favorite:
+    properties:
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/domain.Event'
+      event_id:
+        type: integer
+      id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  domain.Notification:
+    properties:
+      body:
+        type: string
+      created_at:
+        type: string
+      event_id:
+        type: integer
+      id:
+        type: integer
+      read:
+        type: boolean
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/domain.NotificationType'
+      user_id:
+        type: integer
+    type: object
+  domain.NotificationType:
+    enum:
+    - registration_submitted
+    - registration_approved
+    - registration_rejected
+    - waitlist_promoted
+    - event_reminder
+    - event_updated
+    type: string
+    x-enum-varnames:
+    - NotifRegistrationSubmitted
+    - NotifRegistrationApproved
+    - NotifRegistrationRejected
+    - NotifWaitlistPromoted
+    - NotifEventReminder
+    - NotifEventUpdated
+  domain.RegStatus:
+    enum:
+    - pending
+    - approved
+    - rejected
+    - waitlisted
+    - checked_in
+    - completed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusApproved
+    - StatusRejected
+    - StatusWaitlisted
+    - StatusCheckedIn
+    - StatusCompleted
+    - StatusCancelled
+  domain.Registration:
+    properties:
+      checked_in_at:
+        type: string
+      created_at:
+        type: string
+      event:
+        $ref: '#/definitions/domain.Event'
+      event_id:
+        type: integer
+      id:
+        type: integer
+      status:
+        $ref: '#/definitions/domain.RegStatus'
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/domain.User'
+      user_id:
+        type: integer
+    type: object
+  domain.User:
+    properties:
+      approved:
+        type: boolean
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      blocked:
+        type: boolean
+      city:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      grade:
+        type: integer
+      id:
+        type: integer
+      interests:
+        items:
+          type: string
+        type: array
+      phone:
+        type: string
+      role:
+        $ref: '#/definitions/domain.UserRole'
+      school:
+        type: string
+      updated_at:
+        type: string
+      visible_to_organizers:
+        type: boolean
+      visible_to_school:
+        type: boolean
+    type: object
+  domain.UserRole:
+    enum:
+    - student
+    - organizer
+    - admin
+    type: string
+    x-enum-varnames:
+    - RoleStudent
+    - RoleOrganizer
+    - RoleAdmin
+  dto.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserProfile'
+    type: object
+  dto.CheckinRequest:
+    properties:
+      qr_hmac:
+        type: string
+    required:
+    - qr_hmac
+    type: object
+  dto.CreateEventRequest:
+    properties:
+      additional_info:
+        type: string
+      address:
+        type: string
+      capacity:
+        type: integer
+      category:
+        type: string
+      city:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+      format:
+        $ref: '#/definitions/domain.EventFormat'
+      is_free:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      organizer_contact:
+        type: string
+      price:
+        type: number
+      reg_deadline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    required:
+    - date_start
+    - title
+    type: object
+  dto.EventDetailResponse:
+    properties:
+      additional_info:
+        type: string
+      address:
+        type: string
+      capacity:
+        type: integer
+      category:
+        type: string
+      checkin_token:
+        type: string
+      city:
+        type: string
+      created_at:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+      format:
+        $ref: '#/definitions/domain.EventFormat'
+      free_seats:
+        type: integer
+      id:
+        type: integer
+      is_favorite:
+        type: boolean
+      is_free:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      organizer:
+        $ref: '#/definitions/domain.User'
+      organizer_contact:
+        type: string
+      organizer_id:
+        type: integer
+      poster_url:
+        type: string
+      price:
+        type: number
+      reg_deadline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.EventListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.Event'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.FullUserProfile:
+    properties:
+      approved:
+        type: boolean
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      city:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      grade:
+        type: integer
+      id:
+        type: integer
+      interests:
+        items:
+          type: string
+        type: array
+      phone:
+        type: string
+      privacy:
+        $ref: '#/definitions/dto.PrivacySettingsResponse'
+      role:
+        $ref: '#/definitions/domain.UserRole'
+      school:
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.PrivacySettingsRequest:
+    properties:
+      visible_to_organizers:
+        type: boolean
+      visible_to_school:
+        type: boolean
+    type: object
+  dto.PrivacySettingsResponse:
+    properties:
+      visible_to_organizers:
+        type: boolean
+      visible_to_school:
+        type: boolean
+    type: object
+  dto.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.RegisterRequest:
+    properties:
+      city:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      grade:
+        type: integer
+      password:
+        minLength: 6
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/domain.UserRole'
+        description: optional, defaults to student
+      school:
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    type: object
+  dto.UpdateEventRequest:
+    properties:
+      additional_info:
+        type: string
+      address:
+        type: string
+      capacity:
+        type: integer
+      category:
+        type: string
+      city:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+      format:
+        $ref: '#/definitions/domain.EventFormat'
+      is_free:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      organizer_contact:
+        type: string
+      poster_url:
+        type: string
+      price:
+        type: number
+      reg_deadline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    type: object
+  dto.UpdateProfileRequest:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      city:
+        type: string
+      full_name:
+        type: string
+      grade:
+        type: integer
+      interests:
+        items:
+          type: string
+        type: array
+      phone:
+        type: string
+      privacy:
+        $ref: '#/definitions/dto.PrivacySettingsRequest'
+      school:
+        type: string
+    type: object
+  dto.UpdateStatusRequest:
+    properties:
+      status:
+        $ref: '#/definitions/domain.RegStatus'
+    required:
+    - status
+    type: object
+  dto.UserListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.UserProfile'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.UserProfile:
+    properties:
+      approved:
+        type: boolean
+      blocked:
+        type: boolean
+      city:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      grade:
+        type: integer
+      id:
+        type: integer
+      role:
+        $ref: '#/definitions/domain.UserRole'
+      school:
+        type: string
+    type: object
+  handler.changeRoleRequest:
+    properties:
+      role:
+        $ref: '#/definitions/domain.UserRole'
+    required:
+    - role
+    type: object
+  handler.registerDeviceRequest:
+    properties:
+      platform:
+        description: '"ios" (default) or "android"'
+        type: string
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  response.APIError:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+    type: object
+  response.ErrorBody:
+    properties:
+      error:
+        $ref: '#/definitions/response.APIError'
+    type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@eventapp.local
+    name: EventApp Team
+  description: Platform for school students and IT/robotics event organizers.
+  license:
+    name: MIT
+  termsOfService: http://localhost:8080
+  title: EventApp API
+  version: "1.2"
 paths:
-  /events:
+  /api/admin/audit:
     get:
-      description: Get list of all events
+      parameters:
+      - description: Max results (default 50)
+        in: query
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
@@ -21,71 +740,333 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Event'
+              $ref: '#/definitions/domain.AuditLog'
             type: array
-      summary: Get all events
+      security:
+      - BearerAuth: []
+      summary: List recent audit logs
+      tags:
+      - admin
+  /api/admin/dashboard:
+    get:
+      description: 'Returns aggregated stats: total users, events, registrations,
+        pending organizers, recent audit actions.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app.DashboardStats'
+      security:
+      - BearerAuth: []
+      summary: Admin dashboard metrics
+      tags:
+      - admin
+  /api/admin/organizers/{id}/approve:
+    patch:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfile'
+      security:
+      - BearerAuth: []
+      summary: Approve an organizer
+      tags:
+      - admin
+  /api/admin/organizers/{id}/reject:
+    patch:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfile'
+      security:
+      - BearerAuth: []
+      summary: Reject an organizer
+      tags:
+      - admin
+  /api/admin/organizers/pending:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.UserProfile'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List organizers pending approval
+      tags:
+      - admin
+  /api/admin/users:
+    get:
+      description: 'Paginated, filterable user list. Filters: role, approved, blocked,
+        search.'
+      parameters:
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      - description: true or false
+        in: query
+        name: approved
+        type: string
+      - description: true or false
+        in: query
+        name: blocked
+        type: string
+      - description: Search name/email
+        in: query
+        name: search
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserListResponse'
+      security:
+      - BearerAuth: []
+      summary: List users (admin)
+      tags:
+      - admin
+  /api/admin/users/{id}/block:
+    patch:
+      description: Prevents the user from logging in. Cannot block admins.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfile'
+      security:
+      - BearerAuth: []
+      summary: Block a user
+      tags:
+      - admin
+  /api/admin/users/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Changes a user's role. Cannot promote to admin.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.changeRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfile'
+      security:
+      - BearerAuth: []
+      summary: Change user role
+      tags:
+      - admin
+  /api/admin/users/{id}/unblock:
+    patch:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfile'
+      security:
+      - BearerAuth: []
+      summary: Unblock a user
+      tags:
+      - admin
+  /api/devices:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Device token to remove
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.registerDeviceRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Unregister APNs device token
+      tags:
+      - notifications
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Device token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.registerDeviceRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Register APNs device token
+      tags:
+      - notifications
+  /api/events:
+    get:
+      description: Returns a paginated, filterable list of events. Supports advanced
+        filters.
+      parameters:
+      - description: Filter by city
+        in: query
+        name: city
+        type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Filter by format
+        in: query
+        name: format
+        type: string
+      - description: Search title/description
+        in: query
+        name: search
+        type: string
+      - description: Comma-separated tags
+        in: query
+        name: tags
+        type: string
+      - description: true or false
+        in: query
+        name: is_free
+        type: string
+      - description: RFC3339 date
+        in: query
+        name: date_from
+        type: string
+      - description: RFC3339 date
+        in: query
+        name: date_to
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EventListResponse'
+      security:
+      - BearerAuth: []
+      summary: List events
       tags:
       - events
     post:
       consumes:
       - application/json
-      description: Create a new event with the input payload
+      description: Only approved organizers may create events. A unique checkin_token
+        is generated automatically.
       parameters:
-      - description: Event to create
+      - description: Event payload
         in: body
-        name: event
+        name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Event'
+          $ref: '#/definitions/dto.CreateEventRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Event'
+            $ref: '#/definitions/domain.Event'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: Forbidden
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
       summary: Create a new event
       tags:
       - events
-  /events/{id}:
+  /api/events/{id}:
     delete:
-      description: Delete an event by its ID
-      parameters:
-      - description: Event ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: boolean
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete an event by ID
-      tags:
-      - events
-    get:
-      description: Get details of an event by its ID
+      description: Only the approved organizer who created the event can delete it.
       parameters:
       - description: Event ID
         in: path
@@ -98,14 +1079,829 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Event'
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Delete event
+      tags:
+      - events
+    get:
+      description: Returns event details including free seats and favorite status
+        for the caller.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EventDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Get event by ID
+      tags:
+      - events
+    put:
+      consumes:
+      - application/json
+      description: Only the approved organizer who created the event can update it.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Event'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Update event
+      tags:
+      - events
+  /api/events/{id}/apply:
+    post:
+      description: Creates a registration. If seats available → pending. If full →
+        waitlisted. Duplicate → 409.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Registration'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Apply to an event
+      tags:
+      - registrations
+  /api/events/{id}/calendar.ics:
+    get:
+      description: Returns an .ics file that can be imported into any calendar app
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/calendar
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Download ICS calendar file for an event
+      tags:
+      - calendar
+  /api/events/{id}/favorite:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get an event by ID
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Remove bookmark from event
       tags:
-      - events
+      - favorites
+    post:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Bookmark an event
+      tags:
+      - favorites
+  /api/events/{id}/participants:
+    get:
+      description: Returns all registrations. Caller must be the event organizer.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Registration'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: List participants for an event
+      tags:
+      - registrations
+  /api/events/{id}/participants/export.csv:
+    get:
+      description: Downloads participant list as CSV. Organizer/admin only.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Export participants as CSV
+      tags:
+      - registrations
+  /api/me:
+    get:
+      description: Returns the full enriched profile of the authenticated user, including
+        interests and privacy settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FullUserProfile'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - profile
+    put:
+      consumes:
+      - application/json
+      description: Partially updates the authenticated user's profile. Only provided
+        fields are changed.
+      parameters:
+      - description: Profile fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FullUserProfile'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Update current user profile
+      tags:
+      - profile
+  /api/me/favorites:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Favorite'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List my bookmarked events
+      tags:
+      - favorites
+  /api/my/events:
+    get:
+      description: Returns all event registrations for the current user with event
+        details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Registration'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get my registrations
+      tags:
+      - registrations
+  /api/notifications:
+    get:
+      description: Returns recent notifications for the authenticated user
+      parameters:
+      - description: Only unread
+        in: query
+        name: unread_only
+        type: boolean
+      - description: Max results (default 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Notification'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List notifications
+      tags:
+      - notifications
+  /api/notifications/{id}/read:
+    patch:
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark a notification as read
+      tags:
+      - notifications
+  /api/notifications/read-all:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark all notifications as read
+      tags:
+      - notifications
+  /api/notifications/unread-count:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              format: int64
+              type: integer
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get unread notification count
+      tags:
+      - notifications
+  /api/registrations/{id}:
+    delete:
+      description: User cancels their own pending/approved/waitlisted registration.
+        If an approved seat is freed, the next waitlisted user is auto-promoted.
+      parameters:
+      - description: Registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Registration'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Cancel own registration
+      tags:
+      - registrations
+  /api/registrations/{id}/checkin:
+    patch:
+      consumes:
+      - application/json
+      description: Validates the QR HMAC and transitions approved → checked_in. Organizer
+        only.
+      parameters:
+      - description: Registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: QR HMAC payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CheckinRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Registration'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Check in a participant via QR code
+      tags:
+      - registrations
+  /api/registrations/{id}/qr:
+    get:
+      description: Returns the QR payload string for the user's approved registration.
+        Used by iOS to generate QR code.
+      parameters:
+      - description: Registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Get QR payload for a registration
+      tags:
+      - registrations
+  /api/registrations/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Organizer changes registration status. Enforces state-machine transitions.
+      parameters:
+      - description: Registration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Registration'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Update registration status
+      tags:
+      - registrations
+  /api/reports/events/{id}/attendance:
+    get:
+      description: Returns a structured attendance report with status breakdown. Organizer/admin
+        only.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app.AttendanceReport'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Event attendance report (JSON)
+      tags:
+      - reports
+  /api/reports/events/{id}/attendance.csv:
+    get:
+      description: Downloads attendance as CSV with participant details and status.
+        Organizer/admin only.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Event attendance report (CSV)
+      tags:
+      - reports
+  /api/reports/organizer/summary:
+    get:
+      description: 'Returns aggregated stats for all events belonging to the authenticated
+        organizer: participant counts, fill rate, check-in rate.'
+      parameters:
+      - description: Start date filter (RFC3339)
+        in: query
+        name: date_from
+        type: string
+      - description: End date filter (RFC3339)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app.OrganizerSummary'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Organizer summary report
+      tags:
+      - reports
+  /api/reports/organizer/summary.csv:
+    get:
+      description: Downloads the organizer summary as CSV.
+      parameters:
+      - description: Start date filter (RFC3339)
+        in: query
+        name: date_from
+        type: string
+      - description: End date filter (RFC3339)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: Organizer summary report (CSV)
+      tags:
+      - reports
+  /api/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Accepts a multipart file upload (jpg/png, max 5MB). Returns the
+        public URL.
+      parameters:
+      - description: Image file (jpg/png, max 5MB)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Upload a file (poster image)
+      tags:
+      - uploads
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns access + refresh tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      summary: Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revokes the given refresh token. The access token remains valid
+        until it expires.
+      parameters:
+      - description: Refresh token to revoke
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Exchanges a valid refresh token for a new access + refresh token pair (rotation).
+        The old refresh token is revoked. Send the current access token in the Authorization header
+        (even if expired) so the server can identify the user.
+      parameters:
+      - description: Bearer {access_token} (may be expired)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      summary: Refresh access token
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a student or organizer account and returns access + refresh tokens.
+        Organizer accounts require admin approval before they can create events.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      summary: Register a new user
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    description: 'Enter: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

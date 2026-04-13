@@ -3,7 +3,7 @@ package domain
 import (
 	"time"
 
-	"github.com/lib/pq"
+	// "github.com/lib/pq"
 )
 
 // UserRole defines allowed roles in the system.
@@ -45,7 +45,7 @@ type User struct {
 	Grade        int            `                             json:"grade,omitempty"`
 	Bio          string         `                             json:"bio,omitempty"`
 	AvatarURL    string         `gorm:"column:avatar_url"     json:"avatar_url,omitempty"`
-	Interests    pq.StringArray `gorm:"type:text[]"           json:"interests,omitempty"`
+	Interests    []string		`gorm:"type:text[]"           json:"interests,omitempty"`
 
 	// Privacy (embedded struct maps to flat columns)
 	PrivacySettings `gorm:"embedded"`

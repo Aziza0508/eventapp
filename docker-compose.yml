@@ -10,8 +10,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-eventapp}
     ports:
       # Host port is configurable to avoid collisions with other dev projects
-      # already running Postgres on 5432/5433. Default 5433.
-      - "${DB_PORT:-5433}:5432"
+      # already running Postgres on 5432/5432. Default 5432.
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
