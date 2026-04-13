@@ -2,7 +2,7 @@ name: EventApp
 options:
   bundleIdPrefix: com.eventapp
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
   createIntermediateGroups: true
   defaultConfig: Debug
 
@@ -20,7 +20,7 @@ targets:
   EventApp:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
 
     info:
       path: EventApp/Info.plist
@@ -29,12 +29,15 @@ targets:
           UIColorName: ""
         NSFaceIDUsageDescription: "Used to secure your session"
         NSCameraUsageDescription: "Camera is used to scan QR codes for event check-in"
+        NSPhotoLibraryUsageDescription: "Select a poster image for your event"
         NSCalendarsUsageDescription: "Add events to your calendar for reminders"
         NSCalendarsFullAccessUsageDescription: "Add events to your calendar for reminders"
         UIBackgroundModes:
           - remote-notification
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: false
+        EA_API_BASE_URL: $(EA_API_BASE_URL)
 
     settings:
       base:
