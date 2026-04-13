@@ -61,8 +61,13 @@ func main() {
 	}
 
 	// --- File Storage ---
-	baseURL := fmt.Sprintf("http://localhost:%s/uploads", cfg.App.Port)
-	fileStore, err := storage.NewLocalStore("./uploads", baseURL)
+	// PUBLIC_BASE_URL lets ops point clients at the externally reachable origin
+	// (LAN IP, ngrok, prod domain). Defaults to localhost for dev convenience.
+	publicBase := cfg.App.PublicBaseURL
+	if publicBase == "" {
+		publicBase = fmt.Sprintf("http://localhost:%s", cfg.App.Port)
+	}
+	fileStore, err := storage.NewLocalStore("./uploads", publicBase+"/uploads")
 	if err != nil {
 		log.Fatalf("file storage: %v", err)
 	}

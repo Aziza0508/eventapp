@@ -3,6 +3,7 @@ package app_test
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"eventapp/internal/app"
@@ -297,6 +298,9 @@ func (m *mockRegRepo) ListByUser(userID uint) ([]domain.Registration, error) {
 			out = append(out, *r)
 		}
 	}
+	// Go map iteration is non-deterministic; sort by insertion order (ID)
+	// so tests asserting on positional rows are stable.
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
 }
 
@@ -307,6 +311,7 @@ func (m *mockRegRepo) ListByEvent(eventID uint) ([]domain.Registration, error) {
 			out = append(out, *r)
 		}
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
 }
 

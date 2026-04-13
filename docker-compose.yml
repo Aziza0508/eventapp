@@ -6,17 +6,19 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-eventapp}
     ports:
+      # Host port is configurable to avoid collisions with other dev projects
+      # already running Postgres on 5432/5433. Default 5433.
       - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-eventapp}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
   # ── Redis ─────────────────────────────────────────────────────────────────────
   redis:
@@ -24,20 +26,23 @@ services:
     container_name: eventapp-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Default 6380 to avoid collision with another local Redis on 6379.
+      - "${REDIS_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
-  # ── MinIO (S3-compatible, for poster uploads in production) ───────────────────
+  # ── MinIO (S3-compatible object storage; OPTIONAL) ────────────────────────────
+  # Not required for the canonical local-dev path. Start with `--profile minio`.
   minio:
     image: minio/minio:latest
     container_name: eventapp-minio
     restart: unless-stopped
+    profiles: ["minio"]
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
@@ -47,20 +52,17 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
-  # ── Go API ────────────────────────────────────────────────────────────────────
+  # ── Go API (OPTIONAL — only when running the full stack in Docker) ───────────
+  # The canonical local-dev path runs the API on the host with `make run`.
+  # This profile is here for one-shot demos that want everything in containers.
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: eventapp-api
     restart: unless-stopped
+    profiles: ["full"]
     ports:
       - "8080:8080"
     depends_on:
@@ -69,17 +71,19 @@ services:
       redis:
         condition: service_healthy
     environment:
-      APP_ENV: production
+      APP_ENV: ${APP_ENV:-development}
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-eventapp}
       DB_SSLMODE: disable
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       SMTP_ENABLED: ${SMTP_ENABLED:-false}
       PORT: 8080
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
     volumes:
       - uploads_data:/app/uploads
 

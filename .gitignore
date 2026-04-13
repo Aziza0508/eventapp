@@ -1,32 +1,33 @@
-# Environment
+# ── Environment ──────────────────────────────────────────────────────────────
 .env
 
-# Binary
-eventapp
+# ── Go build artifacts ───────────────────────────────────────────────────────
+# Anchor to repo root so the pattern does NOT match the iOS `EventApp`
+# directory on case-insensitive macOS filesystems.
+/eventapp
+vendor/
+*.test
+*.prof
 
-# Uploads (runtime)
+# ── Runtime uploads ──────────────────────────────────────────────────────────
 uploads/
 
-# IDE
+# ── IDE / editor ─────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *~
 
-# macOS
+# ── macOS ────────────────────────────────────────────────────────────────────
 .DS_Store
 
-# Go
-vendor/
-*.test
-*.prof
-
-# iOS
+# ── iOS / Xcode ──────────────────────────────────────────────────────────────
 ios/EventApp.xcodeproj/xcuserdata/
-ios/build/
+ios/EventApp.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcworkspace/xcuserdata/
 DerivedData/
+ios/build/
 
-# Docs generated
+# ── Swagger generated ────────────────────────────────────────────────────────
 docs/docs.go
 docs/swagger.json

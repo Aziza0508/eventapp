@@ -53,8 +53,9 @@ type JWTConfig struct {
 
 // AppConfig holds HTTP server settings.
 type AppConfig struct {
-	Port string
-	Env  string // "development" | "production"
+	Port          string
+	Env           string // "development" | "production"
+	PublicBaseURL string // public origin used to build absolute URLs (uploads, etc.)
 }
 
 // Load reads configuration from environment variables.
@@ -104,8 +105,9 @@ func Load() *Config {
 			Enabled:  getEnv("SMTP_ENABLED", "false") == "true",
 		},
 		App: AppConfig{
-			Port: getEnv("PORT", "8080"),
-			Env:  getEnv("APP_ENV", "development"),
+			Port:          getEnv("PORT", "8080"),
+			Env:           getEnv("APP_ENV", "development"),
+			PublicBaseURL: strings.TrimRight(getEnv("PUBLIC_BASE_URL", ""), "/"),
 		},
 	}
 }
