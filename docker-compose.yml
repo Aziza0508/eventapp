@@ -62,7 +62,7 @@ services:
       dockerfile: Dockerfile
     container_name: eventapp-api
     restart: unless-stopped
-    profiles: ["full"]
+    # profiles: ["full"]
     ports:
       - "8080:8080"
     depends_on:

@@ -8,7 +8,7 @@
 
 // @license.name  MIT
 
-// @host      localhost:8080
+// @host      192.168.0.103:8080
 // @BasePath  /
 
 // @securityDefinitions.apikey BearerAuth
