@@ -3,7 +3,7 @@ package domain
 import (
 	"time"
 
-	//"github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 // EventFormat is the delivery format of an event.
@@ -29,7 +29,7 @@ type Event struct {
 	Title            string         `gorm:"not null"                json:"title"`
 	Description      string         `                               json:"description"`
 	Category         string         `                               json:"category"`
-	Tags             []string		`gorm:"type:text[]"             json:"tags,omitempty"`
+	Tags             pq.StringArray `gorm:"type:text[]"             json:"tags,omitempty"`
 	Format           EventFormat    `                               json:"format"`
 	City             string         `                               json:"city"`
 	Address          string         `                               json:"address,omitempty"`

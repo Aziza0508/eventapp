@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"eventapp/internal/domain"
+	"github.com/lib/pq"
 )
 
 // ProfileUsecase handles user profile read/update logic.
@@ -108,7 +109,7 @@ func (uc *ProfileUsecase) UpdateProfile(userID uint, in UpdateProfileInput) (*do
 				clean = append(clean, t)
 			}
 		}
-		user.Interests = clean
+		user.Interests = pq.StringArray(clean)
 	}
 
 	// Privacy settings — only update if explicitly provided.

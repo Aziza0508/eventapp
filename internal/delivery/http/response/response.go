@@ -2,6 +2,7 @@ package response
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"eventapp/internal/domain"
@@ -43,6 +44,7 @@ func Err(c *gin.Context, err error) {
 		return
 	}
 	// Unexpected error — do not leak internals
+	log.Printf("[http] unexpected error: %+v", err)
 	c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorBody{Error: APIError{
 		Code:    "INTERNAL_ERROR",
 		Message: "an unexpected error occurred",

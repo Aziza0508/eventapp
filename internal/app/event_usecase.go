@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"eventapp/internal/domain"
+	"github.com/lib/pq"
 )
 
 // EventUsecase handles business logic for events.
@@ -38,6 +39,7 @@ type CreateEventInput struct {
 	Capacity         int
 	IsFree           bool
 	Price            float64
+	PosterURL        string
 	OrganizerID      uint
 }
 
@@ -66,7 +68,7 @@ func (uc *EventUsecase) CreateEvent(in CreateEventInput) (*domain.Event, error) 
 		Title:            strings.TrimSpace(in.Title),
 		Description:      in.Description,
 		Category:         in.Category,
-		Tags:             cleanTags(in.Tags),
+		Tags:             pq.StringArray(cleanTags(in.Tags)),
 		Format:           in.Format,
 		City:             in.City,
 		Address:          in.Address,
@@ -80,6 +82,7 @@ func (uc *EventUsecase) CreateEvent(in CreateEventInput) (*domain.Event, error) 
 		Capacity:         in.Capacity,
 		IsFree:           in.IsFree,
 		Price:            in.Price,
+		PosterURL:        in.PosterURL,
 		CheckinToken:     token,
 		OrganizerID:      in.OrganizerID,
 	}
@@ -176,7 +179,7 @@ func (uc *EventUsecase) UpdateEvent(callerID, eventID uint, in UpdateEventInput)
 		event.Category = in.Category
 	}
 	if in.Tags != nil {
-		event.Tags = cleanTags(in.Tags)
+		event.Tags = pq.StringArray(cleanTags(in.Tags))
 	}
 	if in.Format != "" {
 		if !in.Format.IsValid() {

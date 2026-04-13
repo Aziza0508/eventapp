@@ -25,6 +25,7 @@ type CreateEventRequest struct {
 	Capacity         int                `json:"capacity"`
 	IsFree           *bool              `json:"is_free"`
 	Price            float64            `json:"price"`
+	PosterURL        string             `json:"poster_url"`
 }
 
 // UpdateEventRequest is the body for PUT /api/events/:id.

@@ -68,6 +68,7 @@ func (h *EventHandler) Create(c *gin.Context) {
 		Capacity:         req.Capacity,
 		IsFree:           isFree,
 		Price:            req.Price,
+		PosterURL:        req.PosterURL,
 		OrganizerID:      callerID,
 	})
 	if err != nil {
