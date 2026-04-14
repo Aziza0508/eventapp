@@ -50,23 +50,45 @@ func main() {
 	orgTok, _ := login("alma@robotics.kz")
 	studentTok, studentID := login("nurlan@school.kz")
 
-	listEvents(studentTok)
-	eventID := getFirstUpcomingEvent(studentTok)
-	getEventDetail(studentTok, eventID)
-
-	favoriteRoundtrip(studentTok, eventID)
-
-	// Apply uses an event the seed didn't already register Nurlan to —
-	// pick one with capacity (FLL Qualifier, ID may vary; we look it up).
-	applyEventID := findEventByTitle(studentTok, "FIRST LEGO League Qualifier")
-	if applyEventID > 0 {
-		applyToEvent(studentTok, applyEventID)
+	if studentTok == "" {
+		skip("GET /api/events", "student login failed")
+		skip("GET /api/events/:id", "student login failed")
+		skip("POST /api/events/:id/favorite", "student login failed")
+		skip("DELETE /api/events/:id/favorite", "student login failed")
+		skip("POST /api/events/:id/apply", "student login failed")
 	} else {
-		record("student-apply", false, "could not locate FLL Qualifier event")
+		listEvents(studentTok)
+		eventID := getFirstUpcomingEvent(studentTok)
+		if eventID == 0 {
+			record("GET /api/events/:id", false, "no events available")
+			skip("POST /api/events/:id/favorite", "no event id available")
+			skip("DELETE /api/events/:id/favorite", "no event id available")
+		} else {
+			getEventDetail(studentTok, eventID)
+			favoriteRoundtrip(studentTok, eventID)
+		}
+
+		// Apply uses an event the seed didn't already register Nurlan to —
+		// pick one with capacity (FLL Qualifier, ID may vary; we look it up).
+		applyEventID := findEventByTitle(studentTok, "FIRST LEGO League Qualifier")
+		if applyEventID > 0 {
+			applyToEvent(studentTok, applyEventID)
+		} else {
+			record("POST /api/events/:id/apply", false, "could not locate FLL Qualifier event")
+		}
 	}
 
-	createOrganizerEvent(orgTok)
-	approvePendingOrganizer(adminTok)
+	if orgTok == "" {
+		skip("POST /api/events (organizer)", "organizer login failed")
+	} else {
+		createOrganizerEvent(orgTok)
+	}
+
+	if adminTok == "" {
+		skip("PATCH /api/admin/organizers/:id/approve", "admin login failed")
+	} else {
+		approvePendingOrganizer(adminTok)
+	}
 
 	_ = studentID
 
@@ -90,6 +112,10 @@ func main() {
 	if failed > 0 {
 		os.Exit(1)
 	}
+}
+
+func skip(name, reason string) {
+	record(name, false, "skipped: "+reason)
 }
 
 // ─────────────────────────────── Checks ──────────────────────────────────────

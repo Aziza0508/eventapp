@@ -80,7 +80,15 @@ func (r *EventRepo) Update(event *domain.Event) error {
 }
 
 func (r *EventRepo) Delete(id uint) error {
-	return r.db.Delete(&domain.Event{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("event_id = ?", id).Delete(&domain.Favorite{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("event_id = ?", id).Delete(&domain.Registration{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&domain.Event{}, id).Error
+	})
 }
 
 func (r *EventRepo) CountRegistrations(eventID uint) (int64, error) {

@@ -19,7 +19,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>EA_API_BASE_URL</key>
-	<string>$(EA_API_BASE_URL)</string>
+	<string>http://192.168.0.103:8080</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

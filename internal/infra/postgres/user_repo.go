@@ -15,7 +15,9 @@ type UserRepo struct{ db *gorm.DB }
 func NewUserRepo(db *gorm.DB) *UserRepo { return &UserRepo{db: db} }
 
 func (r *UserRepo) Create(user *domain.User) error {
-	return r.db.Create(user).Error
+	// Select("*") forces GORM to include zero-value fields like Approved=false
+	// instead of letting DB defaults overwrite the application decision.
+	return r.db.Select("*").Create(user).Error
 }
 
 func (r *UserRepo) GetByEmail(email string) (*domain.User, error) {

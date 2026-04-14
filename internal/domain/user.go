@@ -36,7 +36,7 @@ type User struct {
 	Email        string         `gorm:"uniqueIndex;not null"  json:"email"`
 	PasswordHash string         `gorm:"column:password_hash"  json:"-"`
 	Role         UserRole       `gorm:"default:'student'"     json:"role"`
-	Approved     bool           `gorm:"default:true"          json:"approved"`
+	Approved     bool           `                             json:"approved"`
 	Blocked      bool           `gorm:"default:false"         json:"blocked"`
 	FullName     string         `gorm:"not null"              json:"full_name"`
 	Phone        string         `                             json:"phone,omitempty"`
