@@ -232,7 +232,8 @@ struct OrganizerDashboardView: View {
     @ViewBuilder
     private var content: some View {
         switch vm.state {
-        case .idle, .loading where vm.state.value == nil:
+        case .idle where vm.state.value == nil,
+             .loading where vm.state.value == nil:
             VStack(spacing: AppTheme.Spacing.md) {
                 ForEach(0..<2, id: \.self) { _ in SkeletonCard() }
             }

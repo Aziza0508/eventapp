@@ -29,7 +29,7 @@ type Event struct {
 	Title            string         `gorm:"not null"                json:"title"`
 	Description      string         `                               json:"description"`
 	Category         string         `                               json:"category"`
-	Tags             pq.StringArray `gorm:"type:text[]"             json:"tags,omitempty"`
+	Tags             pq.StringArray `gorm:"type:text[]"             json:"tags,omitempty" swaggertype:"array,string"`
 	Format           EventFormat    `                               json:"format"`
 	City             string         `                               json:"city"`
 	Address          string         `                               json:"address,omitempty"`

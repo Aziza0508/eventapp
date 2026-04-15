@@ -4,6 +4,7 @@ import UserNotifications
 /// AppDelegate handles push notification registration and delivery.
 /// Wired into SwiftUI lifecycle via UIApplicationDelegateAdaptor.
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    private var deviceToken: String?
 
     func application(
         _ application: UIApplication,
@@ -19,21 +20,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        let token = deviceToken.map { String(format: "%02x", $0) }.joined()
-        print("[push] APNs token: \(token)")
-
-        // Send to backend.
-        Task {
-            do {
-                let body = DeviceTokenBody(token: token, platform: "ios")
-                try await APIClient.shared.requestVoid(
-                    Endpoint(path: "/api/devices", method: .POST, body: body)
-                )
-                print("[push] device token registered with backend")
-            } catch {
-                print("[push] failed to register token: \(error)")
-            }
-        }
+        self.deviceToken = deviceToken.map { String(format: "%02x", $0) }.joined()
+        print("[push] APNs token: \(self.deviceToken ?? "")")
+        registerDeviceTokenIfNeeded()
     }
 
     func application(
@@ -63,6 +52,22 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let userInfo = response.notification.request.content.userInfo
         print("[push] notification tapped: \(userInfo)")
         completionHandler()
+    }
+
+    func registerDeviceTokenIfNeeded() {
+        guard let deviceToken, APIClient.shared.tokenProvider?() != nil else { return }
+
+        Task {
+            do {
+                let body = DeviceTokenBody(token: deviceToken, platform: "ios")
+                try await APIClient.shared.requestVoid(
+                    Endpoint(path: "/api/devices", method: .POST, body: body)
+                )
+                print("[push] device token registered with backend")
+            } catch {
+                print("[push] failed to register token: \(error)")
+            }
+        }
     }
 }
 

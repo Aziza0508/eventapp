@@ -287,6 +287,10 @@ import SwiftUI
 
 struct UnreadCountResponse: Codable {
     let count: Int
+
+    enum CodingKeys: String, CodingKey {
+        case count = "unread_count"
+    }
 }
 
 // MARK: - Paginated Response

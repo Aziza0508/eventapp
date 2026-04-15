@@ -18,6 +18,7 @@ enum ServerEnvironment: String, CaseIterable, Identifiable {
     case production = "Production"
 
     var id: String { rawValue }
+    private static let localhostURL = URL(string: "http://localhost:8080")!
 
     private var configuredBaseURL: URL? {
         guard let raw = Bundle.main.infoDictionary?["EA_API_BASE_URL"] as? String,
@@ -31,11 +32,10 @@ enum ServerEnvironment: String, CaseIterable, Identifiable {
     var baseURL: URL {
         switch self {
         case .local:
-            // Prefer an injected URL when provided, otherwise fall back to same-machine dev.
-            return configuredBaseURL ?? URL(string: "http://localhost:8080")!
+            return Self.localhostURL
         case .lan:
             // Use the configured LAN/tunnel URL when present.
-            return configuredBaseURL ?? URL(string: "http://localhost:8080")!
+            return configuredBaseURL ?? Self.localhostURL
         case .production:
             return configuredBaseURL ?? URL(string: "https://api.eventapp.kz")!
         }
@@ -52,8 +52,18 @@ enum ServerEnvironment: String, CaseIterable, Identifiable {
 final class AppEnvironment: ObservableObject {
 
     static let shared = AppEnvironment()
+    private static var isRunningOnSimulator: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
 
     private static var defaultDebugServerEnvironment: ServerEnvironment {
+        if isRunningOnSimulator {
+            return .local
+        }
         guard let raw = Bundle.main.infoDictionary?["EA_API_BASE_URL"] as? String else {
             return .local
         }

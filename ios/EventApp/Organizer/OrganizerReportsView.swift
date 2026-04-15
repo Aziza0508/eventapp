@@ -36,7 +36,8 @@ struct OrganizerReportsView: View {
         NavigationStack {
             Group {
                 switch vm.state {
-                case .idle, .loading where vm.state.value == nil:
+                case .idle where vm.state.value == nil,
+                     .loading where vm.state.value == nil:
                     ProgressView()
 
                 case .failure(let error):
@@ -232,7 +233,8 @@ struct AttendanceReportView: View {
     var body: some View {
         Group {
             switch vm.state {
-            case .idle, .loading where vm.state.value == nil:
+            case .idle where vm.state.value == nil,
+                 .loading where vm.state.value == nil:
                 ProgressView()
 
             case .failure(let error):

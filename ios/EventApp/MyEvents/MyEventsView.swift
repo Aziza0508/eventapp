@@ -38,7 +38,8 @@ struct MyEventsView: View {
                     segmentControl
 
                     switch vm.state {
-                    case .idle, .loading where vm.state.value == nil:
+                    case .idle where vm.state.value == nil,
+                         .loading where vm.state.value == nil:
                         VStack(spacing: AppTheme.Spacing.md) {
                             ForEach(0..<3, id: \.self) { _ in SkeletonCard() }
                         }

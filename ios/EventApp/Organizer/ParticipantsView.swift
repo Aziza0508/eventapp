@@ -50,7 +50,8 @@ struct ParticipantsView: View {
     var body: some View {
         Group {
             switch vm.state {
-            case .idle, .loading where vm.state.value == nil:
+            case .idle where vm.state.value == nil,
+                 .loading where vm.state.value == nil:
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
 
             case .failure(let error):

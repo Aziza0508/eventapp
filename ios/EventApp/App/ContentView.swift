@@ -54,14 +54,14 @@ struct ContentView: View {
                 .foregroundStyle(AppTheme.textSecondary)
 
             PrimaryButton("Unlock") {
-                Task { await auth.authenticateWithBiometrics() }
+                Task { _ = await auth.authenticateWithBiometrics() }
             }
             .frame(width: 200)
 
             Spacer()
         }
         .task {
-            await auth.authenticateWithBiometrics()
+            _ = await auth.authenticateWithBiometrics()
         }
     }
 }

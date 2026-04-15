@@ -29,5 +29,4 @@ DerivedData/
 ios/build/
 
 # ── Swagger generated ────────────────────────────────────────────────────────
-docs/docs.go
-# docs/swagger.json
+# docs/ artifacts are committed because cmd/app imports eventapp/docs at build time.

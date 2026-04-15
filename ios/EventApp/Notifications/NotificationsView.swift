@@ -96,7 +96,8 @@ struct NotificationsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 switch vm.state {
-                case .idle, .loading where vm.state.value == nil:
+                case .idle where vm.state.value == nil,
+                     .loading where vm.state.value == nil:
                     Spacer()
                     ProgressView()
                     Spacer()

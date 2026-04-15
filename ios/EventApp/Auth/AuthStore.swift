@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import LocalAuthentication
+import UIKit
 
 /// AuthStore is the single source of truth for authentication state.
 @MainActor
@@ -16,18 +17,7 @@ final class AuthStore: ObservableObject {
         self.api = api
         self.keychain = keychain
 
-        // Wire refresh token callbacks.
-        api.refreshTokenProvider = { [weak keychain] in keychain?.loadRefreshToken() }
-        api.onTokenRefreshed = { [weak self] access, refresh in
-            Task { @MainActor in
-                self?.keychain.saveToken(access)
-                self?.keychain.saveRefreshToken(refresh)
-                self?.api.tokenProvider = { access }
-            }
-        }
-        api.onSessionExpired = { [weak self] in
-            Task { @MainActor in self?.logout() }
-        }
+        configureAPISessionCallbacks()
 
         #if DEBUG
         if AppEnvironment.shared.dataMode == .mock {
@@ -76,7 +66,6 @@ final class AuthStore: ObservableObject {
 
         keychain.clearAll()
         api.tokenProvider = nil
-        api.refreshTokenProvider = nil
         currentUser = nil
         isAuthenticated = false
         biometricLocked = false
@@ -143,6 +132,7 @@ final class AuthStore: ObservableObject {
     // MARK: - Private
 
     private func applyAuth(_ response: AuthResponse) {
+        configureAPISessionCallbacks()
         keychain.saveToken(response.accessToken)
         if let refresh = response.refreshToken {
             keychain.saveRefreshToken(refresh)
@@ -150,15 +140,37 @@ final class AuthStore: ObservableObject {
         api.tokenProvider = { response.accessToken }
         currentUser = response.user
         isAuthenticated = true
+        registerDeviceTokenIfNeeded()
     }
 
     private func fetchMe() async {
         do {
             let user: User = try await api.request(.me, responseType: User.self)
             currentUser = user
-        } catch {
+            registerDeviceTokenIfNeeded()
+        } catch NetworkError.unauthorized {
             logout()
+        } catch {
+            // Preserve the session on transient network or backend failures.
         }
+    }
+
+    private func configureAPISessionCallbacks() {
+        api.refreshTokenProvider = { [weak keychain] in keychain?.loadRefreshToken() }
+        api.onTokenRefreshed = { [weak self] access, refresh in
+            Task { @MainActor in
+                self?.keychain.saveToken(access)
+                self?.keychain.saveRefreshToken(refresh)
+                self?.api.tokenProvider = { access }
+            }
+        }
+        api.onSessionExpired = { [weak self] in
+            Task { @MainActor in self?.logout() }
+        }
+    }
+
+    private func registerDeviceTokenIfNeeded() {
+        (UIApplication.shared.delegate as? AppDelegate)?.registerDeviceTokenIfNeeded()
     }
 }
 

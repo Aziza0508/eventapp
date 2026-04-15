@@ -65,7 +65,8 @@ struct FavoritesView: View {
 
                 // Content
                 switch vm.state {
-                case .idle, .loading where vm.state.value == nil:
+                case .idle where vm.state.value == nil,
+                     .loading where vm.state.value == nil:
                     Spacer()
                     ProgressView()
                     Spacer()

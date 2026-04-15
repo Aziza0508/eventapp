@@ -180,6 +180,22 @@ extension Endpoint {
     }
 }
 
+// MARK: - Admin Endpoints
+
+extension Endpoint {
+    static var pendingOrganizers: Endpoint {
+        Endpoint(path: "/api/admin/organizers/pending")
+    }
+
+    static func approveOrganizer(id: Int) -> Endpoint {
+        Endpoint(path: "/api/admin/organizers/\(id)/approve", method: .PATCH)
+    }
+
+    static func rejectOrganizer(id: Int) -> Endpoint {
+        Endpoint(path: "/api/admin/organizers/\(id)/reject", method: .PATCH)
+    }
+}
+
 // MARK: - Request Bodies
 
 struct RegisterBody: Encodable {

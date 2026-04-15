@@ -5,6 +5,7 @@ struct ProfileView: View {
     @EnvironmentObject private var appEnv: AppEnvironment
     @State private var showEditProfile = false
     @State private var showNotifications = false
+    @State private var showOrganizerApprovals = false
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showNotifications) {
                 NotificationsView()
+            }
+            .sheet(isPresented: $showOrganizerApprovals) {
+                AdminOrganizerApprovalsView()
             }
         }
     }
@@ -270,6 +274,12 @@ struct ProfileView: View {
                 settingsRow(icon: "pencil", label: "Edit profile") {
                     showEditProfile = true
                 }
+                if auth.role == .admin {
+                    Divider().padding(.leading, 64)
+                    settingsRow(icon: "checkmark.shield.fill", label: "Organizer approvals") {
+                        showOrganizerApprovals = true
+                    }
+                }
                 if auth.canUseBiometrics {
                     Divider().padding(.leading, 64)
                     HStack(spacing: AppTheme.Spacing.md) {
@@ -433,5 +443,230 @@ struct ProfileView: View {
         let first = parts.first?.first.map(String.init) ?? ""
         let last  = parts.count > 1 ? (parts.last?.first.map(String.init) ?? "") : ""
         return (first + last).uppercased()
+    }
+}
+
+@MainActor
+final class AdminOrganizerApprovalsViewModel: ObservableObject {
+    @Published var state: Loadable<[User]> = .idle
+    @Published var processingID: Int?
+
+    let toast = ToastPresenter()
+
+    private let api: APIClient
+
+    init(api: APIClient = .shared) {
+        self.api = api
+    }
+
+    func load() async {
+        state = .loading
+        do {
+            let organizers: [User] = try await api.request(
+                .pendingOrganizers,
+                responseType: [User].self
+            )
+            state = .success(organizers)
+        } catch {
+            state = .failure(error)
+        }
+    }
+
+    func approve(userID: Int) async {
+        await moderate(
+            userID: userID,
+            endpoint: .approveOrganizer(id: userID),
+            successMessage: "Organizer approved"
+        )
+    }
+
+    func reject(userID: Int) async {
+        await moderate(
+            userID: userID,
+            endpoint: .rejectOrganizer(id: userID),
+            successMessage: "Organizer rejected"
+        )
+    }
+
+    private func moderate(userID: Int, endpoint: Endpoint, successMessage: String) async {
+        processingID = userID
+        defer { processingID = nil }
+
+        do {
+            let updated: User = try await api.request(endpoint, responseType: User.self)
+            removeUser(updated.id)
+            toast.showSuccess(successMessage)
+        } catch {
+            toast.showError(error)
+        }
+    }
+
+    private func removeUser(_ userID: Int) {
+        guard case .success(let users) = state else { return }
+        state = .success(users.filter { $0.id != userID })
+    }
+}
+
+struct AdminOrganizerApprovalsView: View {
+    @StateObject private var vm = AdminOrganizerApprovalsViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                switch vm.state {
+                case .idle where vm.state.value == nil,
+                     .loading where vm.state.value == nil:
+                    ProgressView()
+
+                case .failure(let error):
+                    EmptyStateView(
+                        icon: "exclamationmark.triangle",
+                        title: "Failed to load requests",
+                        subtitle: error.localizedDescription,
+                        actionTitle: "Retry"
+                    ) { Task { await vm.load() } }
+
+                case .success(let organizers):
+                    if organizers.isEmpty {
+                        emptyState
+                    } else {
+                        organizerList(organizers)
+                    }
+
+                default:
+                    if let organizers = vm.state.value, !organizers.isEmpty {
+                        organizerList(organizers)
+                    } else {
+                        emptyState
+                    }
+                }
+            }
+            .navigationTitle("Approvals")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close") { dismiss() }
+                }
+            }
+            .task { await vm.load() }
+            .refreshable { await vm.load() }
+        }
+        .toastOverlay(vm.toast)
+    }
+
+    private var emptyState: some View {
+        EmptyStateView(
+            icon: "checkmark.shield",
+            title: "No pending organizers",
+            subtitle: "New organizer applications will show up here."
+        )
+    }
+
+    private func organizerList(_ organizers: [User]) -> some View {
+        ScrollView {
+            VStack(spacing: AppTheme.Spacing.md) {
+                ForEach(organizers) { organizer in
+                    OrganizerApprovalCard(
+                        organizer: organizer,
+                        isProcessing: vm.processingID == organizer.id,
+                        onApprove: { Task { await vm.approve(userID: organizer.id) } },
+                        onReject: { Task { await vm.reject(userID: organizer.id) } }
+                    )
+                }
+            }
+            .padding(.horizontal, AppTheme.Spacing.xl)
+            .padding(.vertical, AppTheme.Spacing.md)
+        }
+        .background(AppTheme.background)
+    }
+}
+
+private struct OrganizerApprovalCard: View {
+    let organizer: User
+    let isProcessing: Bool
+    let onApprove: () -> Void
+    let onReject: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+            HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.primary.opacity(0.12))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "person.badge.key.fill")
+                        .foregroundStyle(AppTheme.primary)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(organizer.fullName)
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Text(organizer.email)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                    if let city = organizer.city, !city.isEmpty {
+                        Label(city, systemImage: "mappin.and.ellipse")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textTertiary)
+                    }
+
+                    if let school = organizer.school, !school.isEmpty {
+                        Label(school, systemImage: "building.columns.fill")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textTertiary)
+                    }
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: AppTheme.Spacing.sm) {
+                Button(action: onReject) {
+                    HStack {
+                        if isProcessing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "xmark")
+                        }
+                        Text("Reject")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.error)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(AppTheme.error.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.full, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessing)
+
+                Button(action: onApprove) {
+                    HStack {
+                        if isProcessing {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "checkmark")
+                        }
+                        Text("Approve")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(AppTheme.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.full, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessing)
+            }
+        }
+        .padding(AppTheme.Spacing.md)
+        .surfaceCard()
     }
 }
