@@ -46,6 +46,59 @@ enum UserRole: String, Codable {
     case admin
 }
 
+enum AppCatalog {
+    static let cities = [
+        "Almaty",
+        "Astana",
+        "Shymkent",
+        "Karaganda",
+        "Aktobe",
+        "Atyrau",
+        "Kostanay",
+        "Pavlodar",
+        "Semey",
+        "Taraz",
+        "Turkistan",
+        "Oral",
+        "Ust-Kamenogorsk"
+    ]
+
+    static let eventCategories = [
+        "Robotics",
+        "Programming",
+        "AI/ML",
+        "Hackathon",
+        "IoT",
+        "Workshop",
+        "Competition",
+        "Olympiad",
+        "Mathematics",
+        "Science",
+        "STEM",
+        "Cybersecurity",
+        "3D Printing",
+        "Design"
+    ]
+}
+
+extension Event {
+    var isPaidEvent: Bool {
+        if let price, price > 0 { return true }
+        return isFree == false
+    }
+
+    var isFreeEvent: Bool {
+        !isPaidEvent
+    }
+
+    var pricingBadgeText: String {
+        if let price, price > 0 {
+            return String(format: "%.0f KZT", price)
+        }
+        return "Free"
+    }
+}
+
 // MARK: - Event
 
 struct Event: Codable, Identifiable {
@@ -263,9 +316,12 @@ struct AppNotification: Codable, Identifiable {
     var icon: String {
         switch type {
         case "registration_submitted":  return "paperplane.fill"
+        case "organizer_new_registration": return "person.badge.plus"
         case "registration_approved":   return "checkmark.circle.fill"
         case "registration_rejected":   return "xmark.circle.fill"
+        case "registration_checked_in": return "qrcode.viewfinder"
         case "waitlist_promoted":       return "arrow.up.circle.fill"
+        case "organizer_approval_pending": return "person.badge.key.fill"
         case "event_reminder":          return "bell.fill"
         case "event_updated":           return "arrow.triangle.2.circlepath"
         default:                        return "bell.fill"
@@ -274,7 +330,8 @@ struct AppNotification: Codable, Identifiable {
 
     var iconColor: Color {
         switch type {
-        case "registration_approved", "waitlist_promoted": return AppTheme.success
+        case "registration_approved", "registration_checked_in", "waitlist_promoted": return AppTheme.success
+        case "organizer_new_registration", "organizer_approval_pending": return AppTheme.primary
         case "registration_rejected":                      return AppTheme.error
         case "registration_submitted":                     return AppTheme.primary
         case "event_reminder":                             return AppTheme.warning
@@ -381,7 +438,7 @@ struct AttendanceRow: Codable, Identifiable {
     let userEmail: String
     let school: String
     let city: String
-    let grade: Int
+    let grade: Int?
     let status: String
     let checkedInAt: Date?
     let appliedAt: Date

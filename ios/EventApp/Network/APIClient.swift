@@ -43,6 +43,23 @@ private struct APIErrorResponse: Decodable {
 final class APIClient {
     static let shared = APIClient()
 
+    private static let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [
+            .withInternetDateTime
+        ]
+        return formatter
+    }()
+
+    private static let iso8601FractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds
+        ]
+        return formatter
+    }()
+
     /// Resolved dynamically from AppEnvironment so switching server env takes effect immediately.
     private var baseURL: URL { AppEnvironment.shared.baseURL }
 
@@ -67,7 +84,20 @@ final class APIClient {
         self.session = session
 
         decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+
+            if let date = Self.iso8601FractionalFormatter.date(from: rawValue)
+                ?? Self.iso8601Formatter.date(from: rawValue) {
+                return date
+            }
+
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid ISO8601 date: \(rawValue)"
+            )
+        }
     }
 
     // MARK: - Core Request

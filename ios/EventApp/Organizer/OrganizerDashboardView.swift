@@ -393,12 +393,10 @@ private struct OrganizerEventCard: View {
                         systemImage: event.capacity > 0 ? "person.2.fill" : "infinity",
                         tint: AppTheme.primary
                     )
-                    if let free = event.isFree {
-                        MetaChip(
-                            text: free ? "Free" : "Paid",
-                            tint: free ? AppTheme.success : AppTheme.warning
-                        )
-                    }
+                    MetaChip(
+                        text: event.pricingBadgeText,
+                        tint: event.isFreeEvent ? AppTheme.success : AppTheme.warning
+                    )
                 }
                 .padding(.top, 2)
 
@@ -406,6 +404,17 @@ private struct OrganizerEventCard: View {
 
                 // Actions row
                 HStack(spacing: AppTheme.Spacing.sm) {
+                    NavigationLink(destination: EventDetailView(event: event)) {
+                        Label("Open", systemImage: "arrow.right.circle")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.primary)
+                            .padding(.horizontal, AppTheme.Spacing.sm)
+                            .padding(.vertical, 6)
+                            .background(AppTheme.primary.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
                     NavigationLink(destination: ParticipantsView(event: event)) {
                         Label("Participants", systemImage: "person.2")
                             .font(.caption.weight(.semibold))

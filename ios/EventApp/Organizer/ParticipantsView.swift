@@ -79,7 +79,9 @@ struct ParticipantsView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showQRScanner) {
+        .fullScreenCover(isPresented: $showQRScanner, onDismiss: {
+            Task { await vm.load(eventID: event.id) }
+        }) {
             QRScannerView(event: event)
         }
         .task { await vm.load(eventID: event.id) }

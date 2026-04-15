@@ -6,6 +6,7 @@ final class EventListViewModel: ObservableObject {
     @Published var state: Loadable<[Event]> = .idle
     @Published var filterCity     = ""
     @Published var filterCategory = ""
+    @Published var filterIsFree: Bool?
     @Published var filterFormat   = ""
     @Published var searchQuery    = ""
     @Published private(set) var totalCount = 0
@@ -49,6 +50,7 @@ final class EventListViewModel: ObservableObject {
     func clearFilters() async {
         filterCity = ""
         filterCategory = ""
+        filterIsFree = nil
         filterFormat = ""
         searchQuery = ""
         await loadInitial()
@@ -59,6 +61,7 @@ final class EventListViewModel: ObservableObject {
             let response = try await repository.listEvents(
                 city:     filterCity.isEmpty     ? nil : filterCity,
                 category: filterCategory.isEmpty ? nil : filterCategory,
+                isFree:   filterIsFree,
                 format:   filterFormat.isEmpty   ? nil : filterFormat,
                 search:   searchQuery.isEmpty    ? nil : searchQuery,
                 page:     page,
@@ -74,7 +77,7 @@ final class EventListViewModel: ObservableObject {
 
             // Cache first page of unfiltered results.
             if reset && filterCity.isEmpty && filterCategory.isEmpty &&
-               filterFormat.isEmpty && searchQuery.isEmpty {
+               filterIsFree == nil && filterFormat.isEmpty && searchQuery.isEmpty {
                 await cache.save(response)
             }
         } catch {

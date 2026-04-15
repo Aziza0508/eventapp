@@ -51,11 +51,7 @@ struct RegisterView: View {
                                 autocapitalization: .never,
                                 isSecure: true
                             )
-                            IconTextField(
-                                icon: "mappin.and.ellipse",
-                                placeholder: "City (optional)",
-                                text: $city
-                            )
+                            cityPicker
                             if selectedRole == "student" {
                                 IconTextField(
                                     icon: "building.columns.fill",
@@ -181,6 +177,33 @@ struct RegisterView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private var cityPicker: some View {
+        HStack(spacing: AppTheme.Spacing.md) {
+            Image(systemName: "mappin.and.ellipse")
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(width: 18)
+
+            Picker("City (optional)", selection: $city) {
+                Text("Select city").tag("")
+                ForEach(AppCatalog.cities, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(AppTheme.textPrimary)
+
+            Spacer()
+        }
+        .padding(.horizontal, AppTheme.Spacing.md)
+        .frame(height: 54)
+        .background(AppTheme.surface)
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+                .strokeBorder(AppTheme.divider, lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous))
     }
 
     private func register() {

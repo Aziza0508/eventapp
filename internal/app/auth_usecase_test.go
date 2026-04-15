@@ -13,7 +13,7 @@ import (
 func newAuthUC(repo *mockUserRepo) (*app.AuthUsecase, *mockRefreshStore) {
 	store := newMockRefreshStore()
 	mockRTCounter = 0
-	uc := app.NewAuthUsecase(repo, mockJWT{}, store, mockGenerateRT, mockHashRT)
+	uc := app.NewAuthUsecase(repo, mockJWT{}, store, mockGenerateRT, mockHashRT, nil)
 	return uc, store
 }
 

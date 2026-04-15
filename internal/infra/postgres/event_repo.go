@@ -14,7 +14,7 @@ type EventRepo struct{ db *gorm.DB }
 func NewEventRepo(db *gorm.DB) *EventRepo { return &EventRepo{db: db} }
 
 func (r *EventRepo) Create(event *domain.Event) error {
-	return r.db.Create(event).Error
+	return r.db.Select("*").Create(event).Error
 }
 
 func (r *EventRepo) GetByID(id uint) (*domain.Event, error) {

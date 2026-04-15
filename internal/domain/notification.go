@@ -7,9 +7,12 @@ type NotificationType string
 
 const (
 	NotifRegistrationSubmitted NotificationType = "registration_submitted"
+	NotifOrganizerNewRegistration NotificationType = "organizer_new_registration"
 	NotifRegistrationApproved  NotificationType = "registration_approved"
 	NotifRegistrationRejected  NotificationType = "registration_rejected"
+	NotifRegistrationCheckedIn NotificationType = "registration_checked_in"
 	NotifWaitlistPromoted      NotificationType = "waitlist_promoted"
+	NotifOrganizerApprovalPending NotificationType = "organizer_approval_pending"
 	NotifEventReminder         NotificationType = "event_reminder"
 	NotifEventUpdated          NotificationType = "event_updated"
 )

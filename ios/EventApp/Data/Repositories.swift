@@ -6,6 +6,7 @@ protocol EventRepository {
     func listEvents(
         city: String?,
         category: String?,
+        isFree: Bool?,
         format: String?,
         search: String?,
         page: Int,
@@ -30,6 +31,7 @@ struct LiveEventRepository: EventRepository {
     func listEvents(
         city: String?,
         category: String?,
+        isFree: Bool?,
         format: String?,
         search: String?,
         page: Int,
@@ -37,7 +39,7 @@ struct LiveEventRepository: EventRepository {
     ) async throws -> EventListResponse {
         try await api.request(
             .events(city: city, category: category, format: format,
-                    search: search, page: page, limit: limit),
+                    search: search, isFree: isFree, page: page, limit: limit),
             responseType: EventListResponse.self
         )
     }

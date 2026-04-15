@@ -7,6 +7,7 @@ struct MockEventRepository: EventRepository {
     func listEvents(
         city: String?,
         category: String?,
+        isFree: Bool?,
         format: String?,
         search: String?,
         page: Int,
@@ -25,6 +26,9 @@ struct MockEventRepository: EventRepository {
             events = events.filter {
                 $0.category?.localizedCaseInsensitiveContains(category) ?? false
             }
+        }
+        if let isFree {
+            events = events.filter { $0.isFreeEvent == isFree }
         }
         if let format = format, !format.isEmpty {
             events = events.filter { $0.format?.rawValue == format }

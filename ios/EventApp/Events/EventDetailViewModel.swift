@@ -6,6 +6,7 @@ final class EventDetailViewModel: ObservableObject {
     @Published var myRegistration: Registration?
     @Published var isFavorite = false
     @Published var freeSeats = 0
+    @Published var detailedEvent: Event?
 
     let toast = ToastPresenter()
 
@@ -15,6 +16,20 @@ final class EventDetailViewModel: ObservableObject {
     init(repository: (any RegistrationRepository)? = nil, api: APIClient = .shared) {
         self.regRepo = repository ?? AppEnvironment.shared.makeRegistrationRepository()
         self.api = api
+    }
+
+    func loadDetails(eventID: Int) async {
+        do {
+            let detail: EventDetailResponse = try await api.request(
+                .event(id: eventID),
+                responseType: EventDetailResponse.self
+            )
+            detailedEvent = detail.asEvent
+            freeSeats = detail.freeSeats
+            isFavorite = detail.isFavorite
+        } catch {
+            toast.showError(error)
+        }
     }
 
     func apply(eventID: Int) async {

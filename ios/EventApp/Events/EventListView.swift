@@ -3,6 +3,8 @@ import SwiftUI
 struct EventListView: View {
     @EnvironmentObject private var auth: AuthStore
     @StateObject private var vm = EventListViewModel()
+    @StateObject private var notifVM = NotificationsViewModel()
+    @State private var showNotifications = false
 
     // Categories rendered as icon tiles at the top of the Discover feed.
     private struct CategoryEntry: Identifiable {
@@ -42,6 +44,8 @@ struct EventListView: View {
                     }
 
                     categorySection
+                    citySection
+                    priceSection
 
                     if let list = vm.state.value, !list.isEmpty {
                         featuredSection(list: list)
@@ -68,6 +72,10 @@ struct EventListView: View {
             .navigationBarHidden(true)
             .refreshable { await vm.loadInitial() }
             .task { await vm.loadInitial() }
+            .task { await notifVM.fetchUnreadCount() }
+            .sheet(isPresented: $showNotifications) {
+                NotificationsView()
+            }
         }
     }
 
@@ -94,6 +102,7 @@ struct EventListView: View {
                         .background(AppTheme.primary.opacity(0.10))
                         .clipShape(Capsule())
                 }
+                notificationBell
                 avatarChip
             }
         }
@@ -112,6 +121,33 @@ struct EventListView: View {
         }
         .overlay(Circle().strokeBorder(.white, lineWidth: 2))
         .softShadow()
+    }
+
+    private var notificationBell: some View {
+        Button {
+            showNotifications = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bell.fill")
+                    .font(.body)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .frame(width: 40, height: 40)
+                    .background(AppTheme.surface)
+                    .clipShape(Circle())
+                    .cardShadow()
+
+                if notifVM.unreadCount > 0 {
+                    Text("\(min(notifVM.unreadCount, 99))")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 16, minHeight: 16)
+                        .background(AppTheme.error)
+                        .clipShape(Circle())
+                        .offset(x: 4, y: -4)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Search
@@ -149,6 +185,56 @@ struct EventListView: View {
                 }
                 .padding(.horizontal, AppTheme.Spacing.xl)
             }
+        }
+    }
+
+    private var citySection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            SectionHeader(
+                title: "Choose city",
+                subtitle: vm.filterCity.isEmpty ? "Showing events from every city" : vm.filterCity
+            )
+            .padding(.horizontal, AppTheme.Spacing.xl)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppTheme.Spacing.sm) {
+                    FilterChip(title: "All cities", isSelected: vm.filterCity.isEmpty) {
+                        vm.filterCity = ""
+                        Task { await vm.applyFilters() }
+                    }
+
+                    ForEach(AppCatalog.cities, id: \.self) { city in
+                        FilterChip(title: city, isSelected: vm.filterCity == city) {
+                            vm.filterCity = city
+                            Task { await vm.applyFilters() }
+                        }
+                    }
+                }
+                .padding(.horizontal, AppTheme.Spacing.xl)
+            }
+        }
+    }
+
+    private var priceSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            SectionHeader(title: "Price")
+                .padding(.horizontal, AppTheme.Spacing.xl)
+
+            HStack(spacing: AppTheme.Spacing.sm) {
+                FilterChip(title: "All", isSelected: vm.filterIsFree == nil) {
+                    vm.filterIsFree = nil
+                    Task { await vm.applyFilters() }
+                }
+                FilterChip(title: "Free", isSelected: vm.filterIsFree == true) {
+                    vm.filterIsFree = true
+                    Task { await vm.applyFilters() }
+                }
+                FilterChip(title: "Paid", isSelected: vm.filterIsFree == false) {
+                    vm.filterIsFree = false
+                    Task { await vm.applyFilters() }
+                }
+            }
+            .padding(.horizontal, AppTheme.Spacing.xl)
         }
     }
 
@@ -244,9 +330,7 @@ struct EventListView: View {
             subtitle: "Try a different category or clear your filters to see more events.",
             actionTitle: "Clear filters"
         ) {
-            vm.filterCategory = ""
-            vm.searchQuery = ""
-            Task { await vm.applyFilters() }
+            Task { await vm.clearFilters() }
         }
     }
 

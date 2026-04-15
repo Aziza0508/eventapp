@@ -20,6 +20,7 @@ type AuthUsecase struct {
 	refreshStore  RefreshTokenStore
 	generateRT    func() (string, error)
 	hashRT        func(string) string
+	notifUC       *NotificationUsecase
 }
 
 // NewAuthUsecase creates a new auth usecase.
@@ -30,6 +31,7 @@ func NewAuthUsecase(
 	refreshStore RefreshTokenStore,
 	generateRT func() (string, error),
 	hashRT func(string) string,
+	notifUC *NotificationUsecase,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		users:        users,
@@ -37,6 +39,7 @@ func NewAuthUsecase(
 		refreshStore: refreshStore,
 		generateRT:   generateRT,
 		hashRT:       hashRT,
+		notifUC:      notifUC,
 	}
 }
 
@@ -102,6 +105,15 @@ func (uc *AuthUsecase) Register(in RegisterInput) (*domain.User, *TokenPair, err
 	if err := uc.users.Create(user); err != nil {
 		// Treat unique violation as conflict
 		return nil, nil, domain.ErrAlreadyExists
+	}
+
+	if role == domain.RoleOrganizer && uc.notifUC != nil {
+		admins, err := uc.users.ListByRoleAndApproval(domain.RoleAdmin, true)
+		if err == nil {
+			for _, admin := range admins {
+				uc.notifUC.NotifyOrganizerApprovalPending(admin.ID, user.FullName)
+			}
+		}
 	}
 
 	tokens, err := uc.issueTokens(user)

@@ -71,12 +71,10 @@ struct EventCard: View {
 
                 // Bottom meta strip
                 HStack(spacing: 6) {
-                    if let free = event.isFree {
-                        MetaChip(
-                            text: free ? "Free" : "Paid",
-                            tint: free ? AppTheme.success : AppTheme.warning
-                        )
-                    }
+                    MetaChip(
+                        text: event.pricingBadgeText,
+                        tint: event.isFreeEvent ? AppTheme.success : AppTheme.warning
+                    )
                     if let format = event.format {
                         FormatBadge(format: format)
                     }
@@ -161,13 +159,20 @@ struct HeroEventCard: View {
                             .foregroundStyle(.white)
                             .clipShape(Capsule())
                     }
-                    if let free = event.isFree, free {
-                        Text("Free")
+                    Text(event.isFreeEvent ? "Free" : "Paid")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(event.isFreeEvent ? AppTheme.accent.opacity(0.95) : AppTheme.warning.opacity(0.95))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .clipShape(Capsule())
+                    if event.isPaidEvent, let price = event.price, price > 0 {
+                        Text(String(format: "%.0f KZT", price))
                             .font(.caption.weight(.bold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(AppTheme.accent.opacity(0.95))
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .background(.white.opacity(0.25))
+                            .foregroundStyle(.white)
                             .clipShape(Capsule())
                     }
                 }

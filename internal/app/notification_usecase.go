@@ -56,6 +56,17 @@ func (uc *NotificationUsecase) NotifyRegistrationSubmitted(userID uint, eventTit
 	)
 }
 
+// NotifyOrganizerNewRegistration fires when a student applies to an organizer's event.
+func (uc *NotificationUsecase) NotifyOrganizerNewRegistration(userID uint, eventTitle string, eventID uint) {
+	uc.Notify(
+		userID,
+		domain.NotifOrganizerNewRegistration,
+		"New Event Application",
+		fmt.Sprintf("A student has applied to \"%s\". Review participants to approve or reject.", eventTitle),
+		&eventID,
+	)
+}
+
 // NotifyRegistrationApproved fires when an organizer approves a registration.
 func (uc *NotificationUsecase) NotifyRegistrationApproved(userID uint, eventTitle string, eventID uint) {
 	uc.Notify(
@@ -78,6 +89,17 @@ func (uc *NotificationUsecase) NotifyRegistrationRejected(userID uint, eventTitl
 	)
 }
 
+// NotifyRegistrationCheckedIn fires when an organizer checks a participant in.
+func (uc *NotificationUsecase) NotifyRegistrationCheckedIn(userID uint, eventTitle string, eventID uint) {
+	uc.Notify(
+		userID,
+		domain.NotifRegistrationCheckedIn,
+		"Checked In",
+		fmt.Sprintf("You have been successfully checked in to \"%s\".", eventTitle),
+		&eventID,
+	)
+}
+
 // NotifyWaitlistPromoted fires when a waitlisted user is auto-promoted.
 func (uc *NotificationUsecase) NotifyWaitlistPromoted(userID uint, eventTitle string, eventID uint) {
 	uc.Notify(
@@ -86,6 +108,17 @@ func (uc *NotificationUsecase) NotifyWaitlistPromoted(userID uint, eventTitle st
 		"You Got a Spot!",
 		fmt.Sprintf("A seat opened up — you've been approved for \"%s\"!", eventTitle),
 		&eventID,
+	)
+}
+
+// NotifyOrganizerApprovalPending fires to admins when a new organizer is awaiting approval.
+func (uc *NotificationUsecase) NotifyOrganizerApprovalPending(userID uint, organizerName string) {
+	uc.Notify(
+		userID,
+		domain.NotifOrganizerApprovalPending,
+		"Organizer Approval Needed",
+		fmt.Sprintf("%s registered as an organizer and is waiting for approval.", organizerName),
+		nil,
 	)
 }
 

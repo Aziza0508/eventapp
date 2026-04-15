@@ -55,6 +55,9 @@ func (uc *EventUsecase) CreateEvent(in CreateEventInput) (*domain.Event, error) 
 	if in.DateStart.IsZero() {
 		return nil, domain.NewAppError("VALIDATION_ERROR", "date_start is required", nil)
 	}
+	if in.DateStart.Before(time.Now()) {
+		return nil, domain.NewAppError("VALIDATION_ERROR", "date_start cannot be in the past", nil)
+	}
 	if in.Format != "" && !in.Format.IsValid() {
 		return nil, domain.NewAppError("VALIDATION_ERROR", "invalid format value", nil)
 	}
@@ -206,6 +209,9 @@ func (uc *EventUsecase) UpdateEvent(callerID, eventID uint, in UpdateEventInput)
 		event.AdditionalInfo = in.AdditionalInfo
 	}
 	if !in.DateStart.IsZero() {
+		if in.DateStart.Before(time.Now()) {
+			return nil, domain.NewAppError("VALIDATION_ERROR", "date_start cannot be in the past", nil)
+		}
 		event.DateStart = in.DateStart
 	}
 	if in.DateEnd != nil {

@@ -94,10 +94,10 @@ func main() {
 
 	// --- Usecases ---
 	auditSvc := app.NewAuditService(auditRepo)
-	authUC := app.NewAuthUsecase(userRepo, jwtProvider, refreshStore, jwt.GenerateRefreshToken, jwt.HashRefreshToken)
+	notifUC := app.NewNotificationUsecase(notifRepo, deviceRepo, pushSender)
+	authUC := app.NewAuthUsecase(userRepo, jwtProvider, refreshStore, jwt.GenerateRefreshToken, jwt.HashRefreshToken, notifUC)
 	profileUC := app.NewProfileUsecase(userRepo)
 	eventUC := app.NewEventUsecase(eventRepo, userRepo)
-	notifUC := app.NewNotificationUsecase(notifRepo, deviceRepo, pushSender)
 	regUC := app.NewRegistrationUsecase(regRepo, eventRepo, notifUC)
 	favUC := app.NewFavoriteUsecase(favRepo, eventRepo)
 	reportUC := app.NewReportUsecase(eventRepo, regRepo)

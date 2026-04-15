@@ -99,8 +99,6 @@ struct OrganizerPendingTabView: View {
 
 struct MainTabView: View {
     @EnvironmentObject private var auth: AuthStore
-    @StateObject private var notifVM = NotificationsViewModel()
-    @State private var showNotifications = false
 
     var body: some View {
         TabView {
@@ -132,42 +130,5 @@ struct MainTabView: View {
                 }
         }
         .tint(AppTheme.primary)
-        .overlay(alignment: .topTrailing) {
-            notificationBell
-        }
-        .sheet(isPresented: $showNotifications) {
-            NotificationsView()
-        }
-        .task {
-            await notifVM.fetchUnreadCount()
-        }
-    }
-
-    private var notificationBell: some View {
-        Button {
-            showNotifications = true
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "bell.fill")
-                    .font(.body)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .frame(width: 36, height: 36)
-                    .background(AppTheme.surface)
-                    .clipShape(Circle())
-                    .cardShadow()
-
-                if notifVM.unreadCount > 0 {
-                    Text("\(min(notifVM.unreadCount, 99))")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 16, minHeight: 16)
-                        .background(AppTheme.error)
-                        .clipShape(Circle())
-                        .offset(x: 4, y: -4)
-                }
-            }
-        }
-        .padding(.trailing, AppTheme.Spacing.xl)
-        .padding(.top, AppTheme.Spacing.xs)
     }
 }

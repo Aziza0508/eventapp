@@ -70,6 +70,7 @@ func (uc *RegistrationUsecase) ApplyToEvent(userID, eventID uint) (*domain.Regis
 	// Notify user of submission.
 	if uc.notifUC != nil {
 		uc.notifUC.NotifyRegistrationSubmitted(userID, event.Title, eventID)
+		uc.notifUC.NotifyOrganizerNewRegistration(event.OrganizerID, event.Title, eventID)
 	}
 
 	return reg, nil
@@ -256,6 +257,10 @@ func (uc *RegistrationUsecase) CheckinByQR(callerID uint, regID uint, qrHMAC str
 
 	if err := uc.regs.Update(reg); err != nil {
 		return nil, err
+	}
+
+	if uc.notifUC != nil {
+		uc.notifUC.NotifyRegistrationCheckedIn(reg.UserID, event.Title, event.ID)
 	}
 
 	return reg, nil

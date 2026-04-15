@@ -152,7 +152,7 @@ struct EventFormView: View {
     // Form fields
     @State private var title            = ""
     @State private var description      = ""
-    @State private var category         = ""
+    @State private var selectedCategories: [String] = []
     @State private var tagsText         = ""
     @State private var format           = EventFormat.offline
     @State private var city             = ""
@@ -173,6 +173,14 @@ struct EventFormView: View {
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var posterPreview: UIImage? = nil
 
+    private var availableCities: [String] {
+        var values = AppCatalog.cities
+        if !city.isEmpty && !values.contains(city) {
+            values.insert(city, at: 0)
+        }
+        return values
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -185,7 +193,7 @@ struct EventFormView: View {
                     TextField("Title *", text: $title)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
-                    TextField("Category (e.g. Robotics)", text: $category)
+                    categorySelectionSection
                     TextField("Tags (comma-separated)", text: $tagsText)
                 }
 
@@ -195,7 +203,12 @@ struct EventFormView: View {
                             Text($0.displayName).tag($0)
                         }
                     }
-                    TextField("City", text: $city)
+                    Picker("City", selection: $city) {
+                        Text("Not specified").tag("")
+                        ForEach(availableCities, id: \.self) { option in
+                            Text(option).tag(option)
+                        }
+                    }
                     TextField("Address / Venue", text: $address)
                 }
 
@@ -259,7 +272,7 @@ struct EventFormView: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(vm.state.isLoading || title.isEmpty)
+                    .disabled(vm.state.isLoading || title.isEmpty || selectedCategories.isEmpty)
                 }
             }
             .navigationTitle(mode.navigationTitle)
@@ -287,6 +300,51 @@ struct EventFormView: View {
     }
 
     // MARK: - Poster Section
+
+    private var categorySelectionSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            Text("Categories *")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            FlowLayout(spacing: 8) {
+                ForEach(AppCatalog.eventCategories, id: \.self) { option in
+                    Button {
+                        toggleCategory(option)
+                    } label: {
+                        Text(option)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(selectedCategories.contains(option) ? .white : AppTheme.textPrimary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background {
+                                if selectedCategories.contains(option) {
+                                    Capsule().fill(AppTheme.primaryGradient)
+                                } else {
+                                    Capsule()
+                                        .fill(AppTheme.surface)
+                                        .overlay {
+                                            Capsule().strokeBorder(AppTheme.divider, lineWidth: 1)
+                                        }
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if let primary = selectedCategories.first {
+                Text("Primary category: \(primary)")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            } else {
+                Text("Choose at least one category.")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textTertiary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
 
     @ViewBuilder
     private var posterSection: some View {
@@ -369,7 +427,14 @@ struct EventFormView: View {
     private func populateFromEvent(_ event: Event) {
         title = event.title
         description = event.description ?? ""
-        category = event.category ?? ""
+        var categories = [String]()
+        if let category = event.category, !category.isEmpty {
+            categories.append(category)
+        }
+        if let tags = event.tags {
+            categories.append(contentsOf: tags.filter(AppCatalog.eventCategories.contains))
+        }
+        selectedCategories = Array(NSOrderedSet(array: categories)) as? [String] ?? categories
         tagsText = event.tags?.joined(separator: ", ") ?? ""
         format = event.format ?? .offline
         city = event.city ?? ""
@@ -402,13 +467,37 @@ struct EventFormView: View {
         tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
 
+    private var eventCategory: String {
+        selectedCategories.first ?? ""
+    }
+
+    private var eventTags: [String] {
+        var combined = selectedCategories
+        combined.append(contentsOf: parsedTags)
+        var unique: [String] = []
+        for item in combined where !item.isEmpty {
+            if !unique.contains(where: { $0.caseInsensitiveCompare(item) == .orderedSame }) {
+                unique.append(item)
+            }
+        }
+        return unique
+    }
+
+    private func toggleCategory(_ option: String) {
+        if let index = selectedCategories.firstIndex(of: option) {
+            selectedCategories.remove(at: index)
+        } else {
+            selectedCategories.append(option)
+        }
+    }
+
     private func submit() {
         Task {
             switch mode {
             case .create:
                 await vm.create(
-                    title: title, description: description, category: category,
-                    tags: parsedTags, format: format, city: city, address: address,
+                    title: title, description: description, category: eventCategory,
+                    tags: eventTags, format: format, city: city, address: address,
                     organizerContact: organizerContact, additionalInfo: additionalInfo,
                     dateStart: dateStart, dateEnd: hasEndDate ? dateEnd : nil,
                     regDeadline: hasDeadline ? regDeadline : nil,
@@ -418,8 +507,8 @@ struct EventFormView: View {
             case .edit(let event):
                 await vm.update(
                     eventID: event.id,
-                    title: title, description: description, category: category,
-                    tags: parsedTags, format: format, city: city, address: address,
+                    title: title, description: description, category: eventCategory,
+                    tags: eventTags, format: format, city: city, address: address,
                     organizerContact: organizerContact, additionalInfo: additionalInfo,
                     dateStart: dateStart, dateEnd: hasEndDate ? dateEnd : nil,
                     regDeadline: hasDeadline ? regDeadline : nil,

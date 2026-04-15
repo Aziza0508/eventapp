@@ -20,15 +20,23 @@ struct EventDetailView: View {
         let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
     }()
 
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                heroSection
+    private var displayEvent: Event {
+        vm.detailedEvent ?? event
+    }
 
-                contentColumn
-                    .padding(.horizontal, AppTheme.Spacing.xl)
-                    .padding(.top, AppTheme.Spacing.lg)
+    var body: some View {
+        ZStack(alignment: .top) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    heroSection
+
+                    contentColumn
+                        .padding(.horizontal, AppTheme.Spacing.xl)
+                        .padding(.top, AppTheme.Spacing.lg)
+                }
             }
+
+            topBar
         }
         .ignoresSafeArea(edges: .top)
         .background(AppTheme.background.ignoresSafeArea())
@@ -40,47 +48,70 @@ struct EventDetailView: View {
                     .background(.regularMaterial)
             }
         }
-        .onAppear { vm.setExistingRegistration(existingRegistration) }
+        .task {
+            vm.setExistingRegistration(existingRegistration)
+            await vm.loadDetails(eventID: event.id)
+        }
         .toastOverlay(vm.toast)
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+            Spacer()
+            Button {
+                Task { await vm.toggleFavorite(eventID: displayEvent.id) }
+            } label: {
+                Image(systemName: vm.isFavorite ? "bookmark.fill" : "bookmark")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(vm.isFavorite ? AppTheme.accent : .white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.horizontal, AppTheme.Spacing.xl)
+        .padding(.top, 56)
+        .zIndex(1)
     }
 
     // MARK: - Content column
 
     @ViewBuilder
     private var contentColumn: some View {
-        // Stats pill strip
         statsStrip
             .padding(.bottom, AppTheme.Spacing.lg)
 
-        // Organizer row
-        if let org = event.organizer {
+        if let org = displayEvent.organizer {
             organizerRow(org: org)
                 .padding(.bottom, AppTheme.Spacing.lg)
         }
 
-        // Tags
-        if let tags = event.tags, !tags.isEmpty {
+        if let tags = displayEvent.tags, !tags.isEmpty {
             tagsRow(tags: tags)
                 .padding(.bottom, AppTheme.Spacing.md)
         }
 
-        // About
-        if let desc = event.description, !desc.isEmpty {
+        if let desc = displayEvent.description, !desc.isEmpty {
             aboutSection(description: desc)
                 .padding(.bottom, AppTheme.Spacing.lg)
         }
 
-        // Detailed info card
         detailsCard
             .padding(.bottom, AppTheme.Spacing.lg)
 
-        // Additional info
-        if let info = event.additionalInfo, !info.isEmpty {
+        if let info = displayEvent.additionalInfo, !info.isEmpty {
             additionalSection(info: info)
                 .padding(.bottom, AppTheme.Spacing.lg)
         }
 
-        // Add to Calendar
         addToCalendarButton
 
         Spacer(minLength: 100)
@@ -89,44 +120,17 @@ struct EventDetailView: View {
     // MARK: - Hero
 
     private var heroSection: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack(alignment: .bottomLeading) {
             posterBackground
 
-            // Dark gradient for legibility
             AppTheme.heroOverlay
                 .frame(height: 340)
 
-            // Top action bar
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                }
-                Spacer()
-                Button {
-                    Task { await vm.toggleFavorite(eventID: event.id) }
-                } label: {
-                    Image(systemName: vm.isFavorite ? "bookmark.fill" : "bookmark")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(vm.isFavorite ? AppTheme.accent : .white)
-                        .frame(width: 40, height: 40)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.top, 56)
-            .padding(.horizontal, AppTheme.Spacing.xl)
-
-            // Hero body content
             VStack {
                 Spacer()
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                     HStack(spacing: 6) {
-                        if let cat = event.category {
+                        if let cat = displayEvent.category, !cat.isEmpty {
                             Text(cat)
                                 .font(.caption.weight(.bold))
                                 .padding(.horizontal, 10)
@@ -135,16 +139,26 @@ struct EventDetailView: View {
                                 .foregroundStyle(.white)
                                 .clipShape(Capsule())
                         }
-                        if let free = event.isFree {
-                            Text(free ? "Free" : "Paid")
+
+                        Text(displayEvent.isFreeEvent ? "Free" : "Paid")
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(displayEvent.isFreeEvent ? AppTheme.accent.opacity(0.95) : AppTheme.warning.opacity(0.95))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .clipShape(Capsule())
+
+                        if displayEvent.isPaidEvent, let price = displayEvent.price, price > 0 {
+                            Text(String(format: "%.0f KZT", price))
                                 .font(.caption.weight(.bold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(free ? AppTheme.accent.opacity(0.95) : AppTheme.warning.opacity(0.95))
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .background(.white.opacity(0.22))
+                                .foregroundStyle(.white)
                                 .clipShape(Capsule())
                         }
-                        if let format = event.format {
+
+                        if let format = displayEvent.format {
                             Text(format.displayName)
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
@@ -155,7 +169,7 @@ struct EventDetailView: View {
                         }
                     }
 
-                    Text(event.title)
+                    Text(displayEvent.title)
                         .font(.title.weight(.bold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.leading)
@@ -172,12 +186,13 @@ struct EventDetailView: View {
 
     @ViewBuilder
     private var posterBackground: some View {
-        if let poster = event.posterURL, !poster.isEmpty, let url = URL(string: poster) {
+        if let poster = displayEvent.posterURL, !poster.isEmpty, let url = URL(string: poster) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let img):
                     img.resizable().aspectRatio(contentMode: .fill)
-                        .frame(height: 340).clipped()
+                        .frame(height: 340)
+                        .clipped()
                 default:
                     Rectangle().fill(AppTheme.heroGradient).frame(height: 340)
                 }
@@ -191,19 +206,36 @@ struct EventDetailView: View {
 
     private var statsStrip: some View {
         HStack(spacing: AppTheme.Spacing.sm) {
-            statPill(icon: "calendar",
-                     value: Self.fullDateFormatter.string(from: event.dateStart),
-                     label: Self.timeFormatter.string(from: event.dateStart))
-            if event.capacity > 0 {
-                statPill(icon: "person.2.fill",
-                         value: vm.freeSeats > 0 ? "\(vm.freeSeats) left" : "Full",
-                         label: "of \(event.capacity) seats",
-                         tint: vm.freeSeats > 0 ? AppTheme.primary : AppTheme.error)
+            statPill(
+                icon: "calendar",
+                value: Self.fullDateFormatter.string(from: displayEvent.dateStart),
+                label: Self.timeFormatter.string(from: displayEvent.dateStart)
+            )
+
+            if displayEvent.capacity > 0 {
+                statPill(
+                    icon: "person.2.fill",
+                    value: seatInfo.value,
+                    label: "of \(displayEvent.capacity) seats",
+                    tint: seatInfo.tint
+                )
             } else {
-                statPill(icon: "infinity",
-                         value: "Open",
-                         label: "no seat limit")
+                statPill(
+                    icon: "infinity",
+                    value: "Open",
+                    label: "no seat limit"
+                )
             }
+        }
+    }
+
+    private var seatInfo: (value: String, tint: Color) {
+        if vm.detailedEvent == nil {
+            return ("\(displayEvent.capacity) seats", AppTheme.primary)
+        } else if vm.freeSeats == 0 {
+            return ("Full", AppTheme.error)
+        } else {
+            return ("\(vm.freeSeats) left", AppTheme.primary)
         }
     }
 
@@ -250,7 +282,7 @@ struct EventDetailView: View {
                 Text(org.fullName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                if let contact = event.organizerContact, !contact.isEmpty {
+                if let contact = displayEvent.organizerContact, !contact.isEmpty {
                     Text(contact)
                         .font(.caption)
                         .foregroundStyle(AppTheme.primary)
@@ -258,7 +290,7 @@ struct EventDetailView: View {
                 }
             }
             Spacer()
-            if let contact = event.organizerContact, !contact.isEmpty,
+            if let contact = displayEvent.organizerContact, !contact.isEmpty,
                let url = URL(string: "mailto:\(contact)") {
                 Link(destination: url) {
                     Image(systemName: "envelope.fill")
@@ -319,44 +351,53 @@ struct EventDetailView: View {
                 .padding(.top, AppTheme.Spacing.md)
 
             VStack(spacing: 0) {
-                infoRow(icon: "calendar",
-                        label: "Date",
-                        value: Self.dateFormatter.string(from: event.dateStart))
+                infoRow(
+                    icon: "calendar",
+                    label: "Date",
+                    value: Self.dateFormatter.string(from: displayEvent.dateStart)
+                )
                 Divider().padding(.leading, 56)
-                infoRow(icon: "clock",
-                        label: "Time",
-                        value: Self.timeFormatter.string(from: event.dateStart))
+                infoRow(
+                    icon: "clock",
+                    label: "Time",
+                    value: Self.timeFormatter.string(from: displayEvent.dateStart)
+                )
 
-                if let city = event.city, !city.isEmpty {
+                if let city = displayEvent.city, !city.isEmpty {
                     Divider().padding(.leading, 56)
-                    let loc = [city, event.address]
+                    let loc = [city, displayEvent.address]
                         .compactMap { $0?.isEmpty == false ? $0 : nil }
                         .joined(separator: ", ")
-                    infoRow(icon: "mappin.and.ellipse",
-                            label: "Location", value: loc)
+                    infoRow(icon: "mappin.and.ellipse", label: "Location", value: loc)
                 }
 
-                if let deadline = event.regDeadline {
+                if let deadline = displayEvent.regDeadline {
                     Divider().padding(.leading, 56)
-                    infoRow(icon: "exclamationmark.circle",
-                            label: "Apply before",
-                            value: Self.dateFormatter.string(from: deadline),
-                            tint: AppTheme.warning)
+                    infoRow(
+                        icon: "exclamationmark.circle",
+                        label: "Apply before",
+                        value: Self.dateFormatter.string(from: deadline),
+                        tint: AppTheme.warning
+                    )
                 }
 
-                if let price = event.price, price > 0, event.isFree == false {
+                if let price = displayEvent.price, price > 0, displayEvent.isPaidEvent {
                     Divider().padding(.leading, 56)
-                    infoRow(icon: "creditcard.fill",
-                            label: "Price",
-                            value: String(format: "%.0f KZT", price),
-                            tint: AppTheme.warning)
+                    infoRow(
+                        icon: "creditcard.fill",
+                        label: "Price",
+                        value: String(format: "%.0f KZT", price),
+                        tint: AppTheme.warning
+                    )
                 }
 
-                if let end = event.dateEnd {
+                if let end = displayEvent.dateEnd {
                     Divider().padding(.leading, 56)
-                    infoRow(icon: "flag.checkered",
-                            label: "Ends",
-                            value: Self.dateFormatter.string(from: end))
+                    infoRow(
+                        icon: "flag.checkered",
+                        label: "Ends",
+                        value: Self.dateFormatter.string(from: end)
+                    )
                 }
             }
             .padding(.bottom, AppTheme.Spacing.sm)
@@ -432,16 +473,16 @@ struct EventDetailView: View {
             } else {
                 Button {
                     Task {
-                        let location = [event.city, event.address]
+                        let location = [displayEvent.city, displayEvent.address]
                             .compactMap { $0?.isEmpty == false ? $0 : nil }
                             .joined(separator: ", ")
                         do {
                             try await CalendarHelper.shared.addToCalendar(
-                                title: event.title,
-                                startDate: event.dateStart,
-                                endDate: event.dateEnd,
+                                title: displayEvent.title,
+                                startDate: displayEvent.dateStart,
+                                endDate: displayEvent.dateEnd,
                                 location: location.isEmpty ? nil : location,
-                                notes: event.description
+                                notes: displayEvent.description
                             )
                             calendarAdded = true
                             calendarError = nil
@@ -479,7 +520,7 @@ struct EventDetailView: View {
         switch vm.applyState {
         case .idle:
             PrimaryButton("Apply to this event") {
-                Task { await vm.apply(eventID: event.id) }
+                Task { await vm.apply(eventID: displayEvent.id) }
             }
         case .loading:
             PrimaryButton("Applying…", isLoading: true) { }
@@ -510,7 +551,7 @@ struct EventDetailView: View {
                     .foregroundStyle(AppTheme.error)
                     .multilineTextAlignment(.center)
                 PrimaryButton("Try again") {
-                    Task { await vm.apply(eventID: event.id) }
+                    Task { await vm.apply(eventID: displayEvent.id) }
                 }
             }
         }
@@ -518,45 +559,48 @@ struct EventDetailView: View {
 
     private func regStatusIcon(_ status: RegStatus) -> String {
         switch status {
-        case .pending:    return "clock.fill"
-        case .approved:   return "checkmark.seal.fill"
-        case .rejected:   return "xmark.seal.fill"
-        case .waitlisted: return "hourglass"
+        case .pending: return "clock.badge"
+        case .approved: return "checkmark.seal.fill"
         case .checked_in: return "qrcode.viewfinder"
-        case .completed:  return "trophy.fill"
-        case .cancelled:  return "slash.circle"
+        case .waitlisted: return "hourglass"
+        case .rejected: return "xmark.octagon.fill"
+        case .completed: return "trophy.fill"
+        case .cancelled: return "slash.circle.fill"
         }
     }
 
     private func statusColor(_ status: RegStatus) -> Color {
         switch status {
-        case .pending:    return AppTheme.warning
-        case .approved:   return AppTheme.success
-        case .rejected:   return AppTheme.error
+        case .pending: return AppTheme.warning
+        case .approved, .completed, .checked_in: return AppTheme.success
         case .waitlisted: return AppTheme.secondary
-        case .checked_in: return AppTheme.primaryDark
-        case .completed:  return AppTheme.success
-        case .cancelled:  return AppTheme.textTertiary
+        case .rejected, .cancelled: return AppTheme.error
         }
     }
 
     private func statusSubtitle(_ status: RegStatus) -> String {
         switch status {
-        case .pending:    return "Waiting on organizer review"
-        case .approved:   return "You're in! Your ticket is ready."
-        case .rejected:   return "Application was declined"
-        case .waitlisted: return "A seat will open up if someone cancels"
-        case .checked_in: return "You're checked in — enjoy the event!"
-        case .completed:  return "Event completed"
-        case .cancelled:  return "Registration cancelled"
+        case .pending:
+            return "Waiting for organizer approval"
+        case .approved:
+            return "You're on the guest list"
+        case .checked_in:
+            return "Your ticket has been checked"
+        case .waitlisted:
+            return "We'll notify you if a seat opens up"
+        case .rejected:
+            return "Organizer declined this application"
+        case .completed:
+            return "Thanks for attending"
+        case .cancelled:
+            return "Registration cancelled"
         }
     }
 
     private func initials(from name: String) -> String {
-        let parts = name.components(separatedBy: " ")
+        let parts = name.split(separator: " ")
         let first = parts.first?.first.map(String.init) ?? ""
-        let last = parts.count > 1 ? (parts.last?.first.map(String.init) ?? "") : ""
-        let result = (first + last).uppercased()
-        return result.isEmpty ? "?" : result
+        let last = parts.count > 1 ? parts.last?.first.map(String.init) ?? "" : ""
+        return (first + last).uppercased()
     }
 }

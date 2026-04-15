@@ -6,60 +6,74 @@ struct QRScannerView: View {
     let event: Event
     @StateObject private var vm = QRScannerViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var cameraMessage: String?
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Camera preview.
-                QRCameraPreview(onCodeScanned: { code in
-                    Task { await vm.handleScan(code: code, eventID: event.id) }
-                })
+                QRCameraPreview(
+                    onCodeScanned: { code in
+                        Task { await vm.handleScan(code: code, eventID: event.id) }
+                    },
+                    onCameraError: { message in
+                        cameraMessage = message
+                    }
+                )
                 .ignoresSafeArea()
 
-                // Overlay.
                 VStack {
                     Spacer()
 
                     VStack(spacing: AppTheme.Spacing.md) {
-                        switch vm.state {
-                        case .idle:
-                            Text("Point camera at participant's QR code")
-                                .font(.subheadline)
-                                .foregroundStyle(.white)
-
-                        case .loading:
-                            ProgressView()
-                                .tint(.white)
-                            Text("Checking in...")
-                                .font(.subheadline)
-                                .foregroundStyle(.white)
-
-                        case .success(let reg):
-                            Image(systemName: "checkmark.circle.fill")
+                        if let cameraMessage {
+                            Image(systemName: "camera.fill")
                                 .font(.system(size: 48))
-                                .foregroundStyle(AppTheme.success)
-                            Text("\(reg.user?.fullName ?? "Participant") checked in!")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                            Button("Scan Next") {
-                                vm.reset()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppTheme.primary)
-
-                        case .failure(let error):
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 48))
-                                .foregroundStyle(AppTheme.error)
-                            Text(error.localizedDescription)
+                                .foregroundStyle(AppTheme.warning)
+                            Text(cameraMessage)
                                 .font(.subheadline)
                                 .foregroundStyle(.white)
                                 .multilineTextAlignment(.center)
-                            Button("Try Again") {
-                                vm.reset()
+                        } else {
+                            switch vm.state {
+                            case .idle:
+                                Text("Point camera at participant's QR code")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white)
+
+                            case .loading:
+                                ProgressView()
+                                    .tint(.white)
+                                Text("Checking in...")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white)
+
+                            case .success(let reg):
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundStyle(AppTheme.success)
+                                Text("\(reg.user?.fullName ?? "Participant") checked in!")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                Button("Scan Next") {
+                                    vm.reset()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppTheme.primary)
+
+                            case .failure(let error):
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundStyle(AppTheme.error)
+                                Text(error.localizedDescription)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white)
+                                    .multilineTextAlignment(.center)
+                                Button("Try Again") {
+                                    vm.reset()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppTheme.primary)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppTheme.primary)
                         }
                     }
                     .padding(AppTheme.Spacing.xl)
@@ -94,7 +108,6 @@ final class QRScannerViewModel: ObservableObject {
         guard code != lastScanned else { return }
         lastScanned = code
 
-        // Parse: eventapp://checkin/{regID}/{hmac}
         guard code.hasPrefix("eventapp://checkin/") else {
             state = .failure(NSError(domain: "", code: 0, userInfo: [
                 NSLocalizedDescriptionKey: "Invalid QR code format"
@@ -135,34 +148,12 @@ final class QRScannerViewModel: ObservableObject {
 
 struct QRCameraPreview: UIViewRepresentable {
     let onCodeScanned: (String) -> Void
+    let onCameraError: (String) -> Void
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
-        let session = AVCaptureSession()
-
-        guard let device = AVCaptureDevice.default(for: .video),
-              let input = try? AVCaptureDeviceInput(device: device) else {
-            return view
-        }
-
-        session.addInput(input)
-
-        let output = AVCaptureMetadataOutput()
-        session.addOutput(output)
-        output.setMetadataObjectsDelegate(context.coordinator, queue: .main)
-        output.metadataObjectTypes = [.qr]
-
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = UIScreen.main.bounds
-        view.layer.addSublayer(previewLayer)
-
-        context.coordinator.previewLayer = previewLayer
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.startRunning()
-        }
-
+        view.backgroundColor = .black
+        configureCamera(on: view, context: context)
         return view
     }
 
@@ -174,9 +165,75 @@ struct QRCameraPreview: UIViewRepresentable {
         Coordinator(onCodeScanned: onCodeScanned)
     }
 
+    private func configureCamera(on view: UIView, context: Context) {
+        #if targetEnvironment(simulator)
+        onCameraError("Camera is unavailable in the iOS Simulator. Use a physical iPhone to scan QR codes.")
+        return
+        #else
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            startSession(on: view, context: context)
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        startSession(on: view, context: context)
+                    } else {
+                        onCameraError("Camera access is required for QR check-in. Enable it in Settings.")
+                    }
+                }
+            }
+        case .denied, .restricted:
+            onCameraError("Camera access is disabled. Enable it in Settings to scan participant QR codes.")
+        @unknown default:
+            onCameraError("Couldn't access the camera on this device.")
+        }
+        #endif
+    }
+
+    private func startSession(on view: UIView, context: Context) {
+        let session = AVCaptureSession()
+
+        guard let device = AVCaptureDevice.default(for: .video) else {
+            onCameraError("This device doesn't have a usable camera.")
+            return
+        }
+
+        guard let input = try? AVCaptureDeviceInput(device: device),
+              session.canAddInput(input) else {
+            onCameraError("Couldn't start the camera for QR scanning.")
+            return
+        }
+        session.addInput(input)
+
+        let output = AVCaptureMetadataOutput()
+        guard session.canAddOutput(output) else {
+            onCameraError("Couldn't read QR codes from the camera feed.")
+            return
+        }
+        session.addOutput(output)
+        output.setMetadataObjectsDelegate(context.coordinator, queue: .main)
+        output.metadataObjectTypes = [.qr]
+
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.frame = view.bounds
+
+        view.layer.sublayers?.forEach { $0.removeFromSuperlayer() }
+        view.layer.addSublayer(previewLayer)
+
+        context.coordinator.previewLayer = previewLayer
+        context.coordinator.session = session
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
+        }
+    }
+
     class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
         let onCodeScanned: (String) -> Void
         var previewLayer: AVCaptureVideoPreviewLayer?
+        var session: AVCaptureSession?
 
         init(onCodeScanned: @escaping (String) -> Void) {
             self.onCodeScanned = onCodeScanned
