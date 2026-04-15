@@ -5,6 +5,7 @@
 # Anchor to repo root so the pattern does NOT match the iOS `EventApp`
 # directory on case-insensitive macOS filesystems.
 /eventapp
+/app
 vendor/
 *.test
 *.prof
