@@ -1,0 +1,56 @@
+flowchart TD
+    classDef start fill:#4A6BF5,stroke:#2740c0,color:#fff,font-weight:bold
+    classDef action fill:#E8F0FF,stroke:#4A6BF5,color:#1b1f3a
+    classDef decision fill:#FFF4E0,stroke:#E08A00,color:#1b1f3a
+    classDef success fill:#E7F8EE,stroke:#2fa060,color:#1b1f3a
+    classDef fail fill:#FDE7EE,stroke:#C94566,color:#1b1f3a
+    classDef notify fill:#F4E8FF,stroke:#8C5CF6,color:#1b1f3a
+
+    START([User opens app]):::start
+    START --> LOGIN{Has valid JWT?}:::decision
+    LOGIN -- no --> AUTH[POST /auth/login or /auth/register]:::action
+    AUTH --> TOK[JWT access 24h + refresh 30d in Redis]:::action
+    TOK --> TABS
+    LOGIN -- yes --> REFR{access token expired?}:::decision
+    REFR -- yes --> RT[POST /auth/refresh — rotate RT]:::action
+    RT --> TABS
+    REFR -- no --> TABS[Main tabs: Events / MyEvents / Notif / Profile]:::action
+
+    TABS --> BROWSE[GET /api/events — filters: city/category/tags/search/date/is_free]:::action
+    BROWSE --> DETAIL[Tap event → GET /api/events/:id]:::action
+    DETAIL --> APPLY[POST /api/events/:id/apply]:::action
+
+    APPLY --> D1{reg_deadline passed?}:::decision
+    D1 -- yes --> ERRDL[409 CONFLICT]:::fail
+    D1 -- no --> D2{duplicate active reg?}:::decision
+    D2 -- yes --> ERRDUP[409 ALREADY_EXISTS]:::fail
+    D2 -- no --> CAP{capacity>0 AND active>=capacity?}:::decision
+    CAP -- yes --> WAIT[status = waitlisted]:::action
+    CAP -- no --> PEND[status = pending]:::action
+    WAIT --> NOTIF1[notify: registration_submitted]:::notify
+    PEND --> NOTIF1
+
+    NOTIF1 --> ORG[Organizer reviews via GET /api/events/:id/participants]:::action
+    ORG --> DEC[PATCH /api/registrations/:id/status]:::action
+    DEC --> STATE{State machine CanTransitionTo?}:::decision
+    STATE -- no --> ERRST[409 INVALID_STATUS_TRANSITION]:::fail
+    STATE -- yes --> APPROVE{newStatus = approved?}:::decision
+    APPROVE -- yes --> NOTIF2[notify: registration_approved]:::notify
+    APPROVE -- no --> NOTIF3[notify: registration_rejected / waitlisted]:::notify
+
+    NOTIF2 --> QRP[Student: GET /api/registrations/:id/qr]:::action
+    QRP --> QR["Payload: eventapp://checkin/{regID}/HMAC-SHA256(regID, event.checkin_token)"]:::action
+    QR --> SCAN[Organizer scans QR → PATCH /api/registrations/:id/checkin]:::action
+    SCAN --> VER{HMAC valid AND status=approved AND caller owns event?}:::decision
+    VER -- no --> ERRQR[403 / 409]:::fail
+    VER -- yes --> CI[status = checked_in + checked_in_at = now + AuditCheckin]:::success
+
+    NOTIF2 -.optional cancel path.-> CANCEL[DELETE /api/registrations/:id]:::action
+    CANCEL --> WASAPR{was approved?}:::decision
+    WASAPR -- no --> DONE[status = cancelled]:::success
+    WASAPR -- yes --> PROMO[FirstWaitlisted FIFO → promote to approved]:::action
+    PROMO --> NOTIF4[notify: waitlist_promoted]:::notify
+    NOTIF4 --> DONE
+
+    TABS --> ADMIN[Admin path]:::action
+    ADMIN --> APRV[PATCH /api/admin/organizers/:id/approve → approved=true + audit]:::success

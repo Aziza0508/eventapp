@@ -1,0 +1,106 @@
+erDiagram
+    USERS ||--o{ EVENTS : "organizes"
+    USERS ||--o{ REGISTRATIONS : "applies"
+    USERS ||--o{ FAVORITES : "bookmarks"
+    USERS ||--o{ NOTIFICATIONS : "receives"
+    USERS ||--o{ DEVICE_TOKENS : "owns"
+    USERS ||--o{ AUDIT_LOGS : "acts"
+    EVENTS ||--o{ REGISTRATIONS : "has"
+    EVENTS ||--o{ FAVORITES : "is bookmarked"
+    EVENTS ||--o{ NOTIFICATIONS : "referenced by"
+
+    USERS {
+      bigint id PK
+      string email UK
+      string password_hash
+      string role
+      bool approved
+      bool blocked
+      string full_name
+      string phone
+      string school
+      string city
+      int grade
+      text bio
+      text avatar_url
+      text_array interests
+      bool privacy_visible_to_organizers
+      bool privacy_visible_to_school
+      timestamptz created_at
+      timestamptz updated_at
+      timestamptz deleted_at
+    }
+
+    EVENTS {
+      bigint id PK
+      string title
+      text description
+      string category
+      text_array tags
+      string format
+      string city
+      text address
+      float latitude
+      float longitude
+      timestamptz date_start
+      timestamptz date_end
+      timestamptz reg_deadline
+      int capacity
+      bool is_free
+      decimal price
+      text poster_url
+      string checkin_token
+      bigint organizer_id FK
+      timestamptz created_at
+      timestamptz updated_at
+      timestamptz deleted_at
+    }
+
+    REGISTRATIONS {
+      bigint id PK
+      bigint user_id FK
+      bigint event_id FK
+      string status
+      timestamptz checked_in_at
+      timestamptz created_at
+      timestamptz updated_at
+      timestamptz deleted_at
+    }
+
+    FAVORITES {
+      bigint id PK
+      bigint user_id FK
+      bigint event_id FK
+      timestamptz created_at
+    }
+
+    NOTIFICATIONS {
+      bigint id PK
+      bigint user_id FK
+      string type
+      string title
+      text body
+      bigint event_id FK
+      bool read
+      timestamptz created_at
+    }
+
+    DEVICE_TOKENS {
+      bigint id PK
+      bigint user_id FK
+      text token UK
+      string platform
+      timestamptz created_at
+      timestamptz updated_at
+    }
+
+    AUDIT_LOGS {
+      bigint id PK
+      bigint actor_id FK
+      string action
+      string entity_type
+      bigint entity_id
+      text summary
+      string ip
+      timestamptz created_at
+    }

@@ -1,0 +1,78 @@
+flowchart LR
+    classDef actor fill:#4A6BF5,stroke:#2740c0,color:#fff,font-weight:bold
+    classDef uc fill:#F0F4FF,stroke:#4A6BF5,color:#1b1f3a
+
+    S((Student)):::actor
+    O((Organizer)):::actor
+    A((Admin)):::actor
+
+    subgraph Auth
+      UC1[Register account]:::uc
+      UC2[Login]:::uc
+      UC3[Refresh token]:::uc
+      UC4[Logout]:::uc
+    end
+
+    subgraph Profile
+      UC5[View own profile]:::uc
+      UC6[Update profile and privacy]:::uc
+      UC7[Register device token]:::uc
+    end
+
+    subgraph Events
+      UC8[Browse / search / filter events]:::uc
+      UC9[View event detail]:::uc
+      UC10[Favorite / unfavorite]:::uc
+      UC11[Export to ICS calendar]:::uc
+      UC12[Create event]:::uc
+      UC13[Edit own event]:::uc
+      UC14[Delete own event]:::uc
+      UC15[Upload poster]:::uc
+    end
+
+    subgraph Registrations
+      UC16[Apply to event]:::uc
+      UC17[Cancel own registration]:::uc
+      UC18[View my registrations]:::uc
+      UC19[Get QR ticket]:::uc
+      UC20[View participants]:::uc
+      UC21[Approve / Reject / Waitlist]:::uc
+      UC22[Check in via QR]:::uc
+      UC23[Export participants CSV]:::uc
+    end
+
+    subgraph Notifications
+      UC24[List notifications]:::uc
+      UC25[Mark read]:::uc
+    end
+
+    subgraph Reports
+      UC26[Attendance report]:::uc
+      UC27[Organizer summary]:::uc
+    end
+
+    subgraph Admin_Ops[Admin]
+      UC28[Dashboard stats]:::uc
+      UC29[Audit log]:::uc
+      UC30[List / filter users]:::uc
+      UC31[Approve / Reject organizer]:::uc
+      UC32[Block / Unblock user]:::uc
+      UC33[Change user role]:::uc
+    end
+
+    S --- UC1 & UC2 & UC3 & UC4
+    S --- UC5 & UC6 & UC7
+    S --- UC8 & UC9 & UC10 & UC11
+    S --- UC16 & UC17 & UC18 & UC19
+    S --- UC24 & UC25
+
+    O --- UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7
+    O --- UC8 & UC9 & UC10 & UC11
+    O --- UC12 & UC13 & UC14 & UC15
+    O --- UC20 & UC21 & UC22 & UC23
+    O --- UC24 & UC25
+    O --- UC26 & UC27
+
+    A --- UC2 & UC3 & UC4 & UC5
+    A --- UC8 & UC9 & UC26 & UC27
+    A --- UC28 & UC29 & UC30 & UC31 & UC32 & UC33

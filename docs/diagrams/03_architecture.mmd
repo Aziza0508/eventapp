@@ -1,0 +1,71 @@
+flowchart LR
+    classDef client fill:#E8F0FF,stroke:#4A6BF5,color:#1b1f3a
+    classDef edge fill:#FFF4E0,stroke:#E08A00,color:#1b1f3a
+    classDef app fill:#E7F8EE,stroke:#2fa060,color:#1b1f3a
+    classDef domain fill:#F4E8FF,stroke:#8C5CF6,color:#1b1f3a
+    classDef infra fill:#FDE7EE,stroke:#C94566,color:#1b1f3a
+    classDef ext fill:#EEEEEE,stroke:#888,color:#333,stroke-dasharray: 5 3
+    classDef ops fill:#EAF7FF,stroke:#1c8ac9,color:#1b1f3a
+
+    subgraph Client["iOS Client — SwiftUI MVVM"]
+      UI[Views + ViewModels]:::client
+      AS[AuthStore + Keychain]:::client
+      NET[APIClient / Endpoint]:::client
+      REPO[Repositories live/mock]:::client
+      UI --> REPO --> NET --> AS
+    end
+
+    subgraph Edge["HTTP / Gin"]
+      MW[Middleware: Recovery · RequestID · Logger · Metrics · Auth · RequireRole]:::edge
+      RT[Router]:::edge
+      H[Handlers: Auth · Profile · Events · Registrations · Favorites · Notifications · Calendar · Upload · Reports · Admin]:::edge
+      MW --> RT --> H
+    end
+
+    subgraph App["Application Layer (Usecases)"]
+      UCA[Auth / Profile]:::app
+      UCE[Event]:::app
+      UCR[Registration + state machine]:::app
+      UCN[Notification]:::app
+      UCF[Favorite]:::app
+      UCRep[Report]:::app
+      UCAdm[Admin]:::app
+      UCAud[Audit service]:::app
+    end
+
+    subgraph Domain["Domain Layer"]
+      D[User · Event · Registration · Favorite · Notification · DeviceToken · AuditLog · Errors]:::domain
+    end
+
+    subgraph Infra["Infrastructure"]
+      PG[(PostgreSQL GORM)]:::infra
+      RD[(Redis rt:uid:hash)]:::infra
+      FS[(Local FS ./uploads)]:::infra
+      JWTP[JWT Provider HS256 24h]:::infra
+      LOG[LogSender push stub]:::infra
+    end
+
+    subgraph External["External (planned)"]
+      APNS[APNs / FCM — NOT WIRED]:::ext
+      SMTP[SMTP — NOT WIRED]:::ext
+    end
+
+    subgraph Ops["Ops endpoints"]
+      HLT["/health, /ready"]:::ops
+      MET["/metrics Prometheus"]:::ops
+      SW["/swagger"]:::ops
+      UP["/uploads static"]:::ops
+    end
+
+    Client -- "HTTPS + Bearer JWT" --> Edge
+    H --> App
+    App --> Domain
+    App --> Infra
+    Infra --> PG
+    Infra --> RD
+    Infra --> FS
+    UCA --> JWTP
+    UCN --> LOG
+    LOG -.planned.-> APNS
+    UCN -.planned.-> SMTP
+    Edge --- Ops
